@@ -52,8 +52,12 @@ fn add_child(parent: usize, mut child: Element, elements: &mut Vec<Element>) -> 
 fn read_file_list() -> Result<Vec<Element>, Box<dyn Error>> {
     let file_list_reader = std::fs::File::open("filelist.efu")?;
 
-    // Convert the records to elements
-    let mut elements: Vec<Element> = Vec::new();
+    // Estimate the number of records in the file
+    let file_size = file_list_reader.metadata()?.len();
+    // Assuming an average record size of 100 bytes, adjust as necessary
+    let estimated_records = (file_size / 100) as usize;
+    // List of elements to build the tree structure
+    let mut elements: Vec<Element> = Vec::with_capacity(estimated_records);
     //root element
     elements.push(Element {
         filename: String::from("Root"),
@@ -122,6 +126,9 @@ fn read_file_list() -> Result<Vec<Element>, Box<dyn Error>> {
 
         // println!("Added file: {}", record.filename);
     }
+
+    // Reduce capacity to the actual number of elements
+    elements.shrink_to_fit();
     // Return the elements as a vector
     Ok(elements)
 }
@@ -188,7 +195,7 @@ fn rocket() -> _ {
         Ok(elements) => {
             println!("Read {} records from filelist.efu", elements.len());
 
-            // exit(0); // Exit successfully after reading the file list
+            //  exit(0); // Exit successfully after reading the file list
             rocket::build()
                 .manage(elements)
                 .mount("/", routes![index, search])

@@ -1,6 +1,11 @@
-use rocket::http::{ContentType, uri::fmt::Part};
+use rocket::http::ContentType;
 use serde::{Deserialize, Serialize};
-use std::{error::Error, io, process::{self, exit}};
+use std::{
+    collections::HashMap,
+    error::Error,
+    io,
+    process::{self, exit},
+};
 #[derive(Deserialize, Serialize)]
 struct Record {
     #[serde(rename = "Filename")]
@@ -15,7 +20,7 @@ struct Record {
     attributes: u32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct Element {
     filename: String,
     size: Option<i64>,
@@ -45,17 +50,10 @@ fn add_child(parent: usize, mut child: Element, elements: &mut Vec<Element>) -> 
 }
 
 fn read_file_list() -> Result<Vec<Element>, Box<dyn Error>> {
-    let mut file_records: Vec<Record> = Vec::new();
     let file_list_reader = std::fs::File::open("filelist.efu")?;
-    // Build the CSV reader and iterate over each record.
-    let mut rdr = csv::Reader::from_reader(file_list_reader);
-    for record in rdr.deserialize() {
-        file_records.push(record?);
-    }
 
     // Convert the records to elements
     let mut elements: Vec<Element> = Vec::new();
-    elements.reserve(file_records.len() + 1); // Reserve space for elements, +1 for root
     //root element
     elements.push(Element {
         filename: String::from("Root"),
@@ -67,49 +65,67 @@ fn read_file_list() -> Result<Vec<Element>, Box<dyn Error>> {
         children: Vec::new(), // Root has no children initially
     });
 
+    // Create a CSV reader from the file
+    let mut rdr = csv::Reader::from_reader(file_list_reader);
+
+    // Cache HashMap to store the elements by path
+    let mut elements_map: HashMap<String, usize> = HashMap::new();
+
     // Iterate over the records and build the tree structure
-    for record in file_records {
+    for record in rdr.deserialize() {
+        let record: Record = record?;
         // Split the filename into parts \ and /
         let parts: Vec<&str> = record.filename.split(&['\\', '/'][..]).collect();
         let mut current_element = 0; // Start with the root element
-        let mut last_created = false; // Flag to check if we created the last element
 
-        for part in parts {
+        // find longest existing path in the elements_map try longest path first
+        let mut start_part: i32 = 0;
+        for i in (0..parts.len()).rev() {
+            let path = parts[0..=i].join("/");
+            if let Some(&index) = elements_map.get(&path) {
+                current_element = index;
+                start_part = (i as i32) + 1; // Store the index of the last part of the longest existing path
+                break; // Found the longest existing path, no need to check further
+            }
+        }
+
+        for (i, part) in parts.iter().enumerate().skip(start_part as usize) {
             // Check if the part already exists as a child of the current element
             if let Some(child_index) = find_child(current_element, part, &elements) {
                 // If it exists, move to that child
                 current_element = child_index;
-                last_created = false;
             } else {
                 // If it doesn't exist, create a new child element
                 let new_element = Element {
                     filename: part.to_string(),
-                    size: record.size,
-                    date_modified: record.date_modified,
-                    date_created: record.date_created,
-                    attributes: record.attributes,
+                    size: None,
+                    date_modified: None,
+                    date_created: None,
+                    attributes: 0,
                     parent: current_element, // Set the parent to the current element
                     children: Vec::new(),    // New element has no children initially
                 };
                 current_element = add_child(current_element, new_element, &mut elements);
-                last_created = true; // We created a new element
+
+                // Update the elements_map with the new path
+                let full_path = parts[0..=i].join("/");
+                elements_map.insert(full_path, current_element);
             }
         }
-        // For last part, we need to update the size, date_modified, date_created, and attributes
-        if !last_created {
-            // If we didn't create a new element, we need to update the existing one
-            if let Some(existing_element) = elements.get_mut(current_element) {
-                existing_element.size = record.size;
-                existing_element.date_modified = record.date_modified;
-                existing_element.date_created = record.date_created;
-                existing_element.attributes = record.attributes;
-            } else {
-                return Err(Box::new(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Element not found for update",
-                )));
-            }
+
+        // we need to update the existing element with the record data
+        if let Some(existing_element) = elements.get_mut(current_element) {
+            existing_element.size = record.size;
+            existing_element.date_modified = record.date_modified;
+            existing_element.date_created = record.date_created;
+            existing_element.attributes = record.attributes;
+        } else {
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Element not found for update",
+            )));
         }
+
         // println!("Added file: {}", record.filename);
     }
     // Return the elements as a vector
@@ -137,7 +153,22 @@ fn search(query: String, elements: &rocket::State<Vec<Element>>) -> String {
         if record.filename.to_lowercase().contains(&query) {
             if num_results < 100 {
                 // If we have less than 100 results, add the record to the results
-                results.push(record);
+                let mut record_with_full_path = record.clone();
+                // Construct the full path for the record from parents
+                let mut full_path = record_with_full_path.filename.clone();
+                let mut parent_index = record_with_full_path.parent;
+                while parent_index != 0 {
+                    if let Some(parent) = elements.get(parent_index) {
+                        full_path = format!("{}/{}", parent.filename, full_path);
+                        parent_index = parent.parent;
+                    } else {
+                        break; // If parent not found, break the loop
+                    }
+                }
+                // Update the filename to the full path
+                record_with_full_path.filename = full_path;
+                // Add the record to the results
+                results.push(record_with_full_path);
             } else {
                 break;
             }

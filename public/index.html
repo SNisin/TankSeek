@@ -61,6 +61,12 @@
                 tableBody.appendChild(row);
             });
         }
+        function formatSize(size) {
+            if (size < 1024) return `${size} B`;
+            else if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KiB`;
+            else if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MiB`;
+            else return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
+        }
 
         function filterFiles() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
@@ -69,8 +75,12 @@
                 .then(data => {
                     const files = data.map(file => ({
                         name: file["filename"],
-                        size: file["size"],
-                        lastModified: file["date_modiied"] ? new Date(file["date_modiied"]).toLocaleString() : 'N/A'
+                        size: file["size"]
+                            ? formatSize(file["size"])
+                            : '',
+                        lastModified: file["date_modified"]
+                            ? new Date(Number(file["date_modified"]) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
+                            : ''
                     }));
                     displayFiles(files);
                 })

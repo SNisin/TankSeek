@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Search</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>File Search</h1>
+    <input type="text" id="searchInput" placeholder="Search files..." oninput="filterFiles()">
+    <table>
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Last Modified</th>
+            </tr>
+        </thead>
+        <tbody id="fileTableBody">
+            <!-- File rows will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <script>
+
+        function displayFiles(files) {
+            const tableBody = document.getElementById('fileTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            files.forEach(file => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.name}</td>
+                    <td>${file.size}</td>
+                    <td>${file.lastModified}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function filterFiles() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            fetch(`/search?query=${searchInput}`)
+                .then(response => response.json())
+                .then(data => {
+                    const files = data.map(file => ({
+                        name: file["filename"],
+                        size: file["size"],
+                        lastModified: file["date_modiied"] ? new Date(file["date_modiied"]).toLocaleString() : 'N/A'
+                    }));
+                    displayFiles(files);
+                })
+                .catch(error => console.error('Error fetching files:', error));
+        }
+
+        // Fetch files on page load
+        fetchFiles();
+    </script>
+</body>
+
+</html>

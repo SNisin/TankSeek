@@ -90,27 +90,21 @@ fn read_file_list() -> Result<Vec<Element>, Box<dyn Error>> {
         }
 
         for (i, part) in parts.iter().enumerate().skip(start_part as usize) {
-            // Check if the part already exists as a child of the current element
-            if let Some(child_index) = find_child(current_element, part, &elements) {
-                // If it exists, move to that child
-                current_element = child_index;
-            } else {
-                // If it doesn't exist, create a new child element
-                let new_element = Element {
-                    filename: part.to_string(),
-                    size: None,
-                    date_modified: None,
-                    date_created: None,
-                    attributes: 0,
-                    parent: current_element, // Set the parent to the current element
-                    children: Vec::new(),    // New element has no children initially
-                };
-                current_element = add_child(current_element, new_element, &mut elements);
+            // create a new child element
+            let new_element = Element {
+                filename: part.to_string(),
+                size: None,
+                date_modified: None,
+                date_created: None,
+                attributes: 0,
+                parent: current_element, // Set the parent to the current element
+                children: Vec::new(),    // New element has no children initially
+            };
+            current_element = add_child(current_element, new_element, &mut elements);
 
-                // Update the elements_map with the new path
-                let full_path = parts[0..=i].join("/");
-                elements_map.insert(full_path, current_element);
-            }
+            // Update the elements_map with the new path
+            let full_path = parts[0..=i].join("/");
+            elements_map.insert(full_path, current_element);
         }
 
         // we need to update the existing element with the record data

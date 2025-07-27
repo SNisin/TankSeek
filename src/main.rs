@@ -1,6 +1,4 @@
 use rocket::fs::{FileServer, relative};
-use rocket::http::ContentType;
-use serde::{Deserialize, Serialize};
 use std::process::{self};
 mod efu_file;
 mod file_tree;
@@ -8,19 +6,6 @@ mod list_index;
 use crate::file_tree::FileTree;
 use crate::{efu_file::import, list_index::bi_letter_reverse_index::BiLetterIndex};
 
-#[derive(Deserialize, Serialize)]
-struct Record {
-    #[serde(rename = "Filename")]
-    filename: String,
-    #[serde(rename = "Size")]
-    size: Option<i64>,
-    #[serde(rename = "Date Modified")]
-    date_modified: Option<i64>,
-    #[serde(rename = "Date Created")]
-    date_created: Option<i64>,
-    #[serde(rename = "Attributes")]
-    attributes: u32,
-}
 
 #[macro_use]
 extern crate rocket;

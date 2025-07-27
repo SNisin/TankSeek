@@ -1,9 +1,22 @@
 use std::{collections::HashMap, error::Error, io, path::Path};
 
-use crate::{
-    Record,
-    file_tree::{Element, FileTree},
-};
+use serde::{Deserialize, Serialize};
+
+use crate::file_tree::{Element, FileTree};
+
+#[derive(Deserialize, Serialize)]
+struct Record {
+    #[serde(rename = "Filename")]
+    filename: String,
+    #[serde(rename = "Size")]
+    size: Option<i64>,
+    #[serde(rename = "Date Modified")]
+    date_modified: Option<i64>,
+    #[serde(rename = "Date Created")]
+    date_created: Option<i64>,
+    #[serde(rename = "Attributes")]
+    attributes: u32,
+}
 
 pub fn import_efu<P: AsRef<Path>>(filepath: P) -> Result<FileTree, Box<dyn Error>> {
     let file_list_reader = std::fs::File::open(filepath)?;

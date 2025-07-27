@@ -38,6 +38,8 @@
                 <th>File Name</th>
                 <th>Size</th>
                 <th>Last Modified</th>
+                <th>Created</th>
+                <th>Attributes</th>
             </tr>
         </thead>
         <tbody id="fileTableBody">
@@ -47,6 +49,23 @@
 
     <script>
 
+        const fileEndingsMap = {
+            "jpg": "picture",
+            "png": "picture",
+            "gif": "picture",
+            "bmp": "picture",
+            "svg": "picture",
+            "webp": "picture",
+            "mp3": "music",
+            "mp4": "video",
+            "avi": "video",
+            "mkv": "video",
+            "txt": "text",
+            "pdf": "document",
+            "docx": "document",
+
+        }
+
         function displayFiles(files) {
             const tableBody = document.getElementById('fileTableBody');
             tableBody.innerHTML = ''; // Clear existing rows
@@ -54,9 +73,14 @@
             files.forEach(file => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${file.name}</td>
+                    <td>
+                        <img src="icons/${file.fileType}.svg" alt="${file.fileType}" style="height: 1em; vertical-align: middle; margin-right: 0.5em;">
+                        ${file.name}
+                    </td>
                     <td>${file.size}</td>
                     <td>${file.lastModified}</td>
+                    <td>${file.created}</td>
+                    <td></td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -80,7 +104,33 @@
                             : '',
                         lastModified: file["date_modified"]
                             ? new Date(Number(file["date_modified"]) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
-                            : ''
+                            : '',
+                        created: file["date_created"]
+                            ? new Date(Number(file["date_created"]) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
+                            : '',
+                        // attributes: Read-only (R): 1, Hidden (H): 2, System (S); 4,  Directory (D): 16, Archive (A): 32, Normal (N): 128, Temporary (T): 256, Sparse file (P): 512, Reparse point (L): 1024, Compressed (C): 2048, Offline (O): 4096, Not content indexed (I): 8192, Encrypted (E): 16384
+                        attributes: (() => {
+                            let attr = '';
+                            if (file["attributes"] & 1) attr += 'R'; // Read-only
+                            if (file["attributes"] & 2) attr += 'H'; // Hidden
+                            if (file["attributes"] & 4) attr += 'S'; // System
+                            if (file["attributes"] & 16) attr += 'D'; // Directory
+                            if (file["attributes"] & 32) attr += 'A'; // Archive
+                            if (file["attributes"] & 128) attr += 'N'; // Normal
+                            if (file["attributes"] & 256) attr += 'T'; // Temporary
+                            if (file["attributes"] & 512) attr += 'P'; // Sparse file
+                            if (file["attributes"] & 1024) attr += 'L'; // Reparse point
+                            if (file["attributes"] & 2048) attr += 'C'; // Compressed
+                            if (file["attributes"] & 4096) attr += 'O'; // Offline
+                            if (file["attributes"] & 8192) attr += 'I'; // Not content indexed
+                            if (file["attributes"] & 16384) attr += 'E'; // Encrypted
+                            return attr || '-';
+                        })(),
+                        fileType: (() => {
+                            if (file["attributes"] & 16) return 'folder';
+                            const ext = file["filename"].split('.').pop().toLowerCase();
+                            return fileEndingsMap[ext] || 'file';
+                        })()
                     }));
                     displayFiles(files);
                 })

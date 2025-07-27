@@ -1,3 +1,4 @@
+use rocket::fs::{FileServer, relative};
 use rocket::http::ContentType;
 use serde::{Deserialize, Serialize};
 use std::process::{self};
@@ -23,12 +24,6 @@ struct Record {
 
 #[macro_use]
 extern crate rocket;
-
-// serve static index.html
-#[get("/")]
-fn index() -> (ContentType, &'static str) {
-    (ContentType::HTML, include_str!("../public/index.html"))
-}
 
 #[get("/search?<query>")]
 fn search(
@@ -146,7 +141,8 @@ fn rocket() -> _ {
             rocket::build()
                 .manage(tree)
                 .manage(bi_letter_index)
-                .mount("/", routes![index, search])
+                .mount("/", routes![search])
+                .mount("/", FileServer::from(relative!("public")))
         }
         Err(e) => {
             eprintln!("Error reading file list: {}", e);

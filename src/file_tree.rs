@@ -59,6 +59,24 @@ impl FileTree {
         &self.elements
     }
 
+    pub fn get_path_of(&self, index: usize) -> String {
+        // Get the path of the element at the specified index. Not including the filename itself.
+        let mut path = String::new();
+        let mut current_index = self.elements[index].parent;
+        while current_index != 0 {
+            let element = &self.elements[current_index];
+            if !path.is_empty() {
+                path = format!("{}\\{}", element.filename, path);
+            } else {
+                path = element.filename.clone();
+            }
+            current_index = element.parent;
+        }
+        path
+
+        
+    }
+
     pub fn collect_all_children(&self, index: usize) -> Vec<usize> {
         // Collect all children of the specified element recursively
         let mut children = Vec::new();

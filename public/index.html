@@ -15,6 +15,9 @@
         td {
             border: 1px solid #ddd;
             padding: 8px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
         }
 
         th {
@@ -35,7 +38,8 @@
     <table>
         <thead>
             <tr>
-                <th>File Name</th>
+                <th>Name</th>
+                <th>Path</th>
                 <th>Size</th>
                 <th>Last Modified</th>
                 <th>Created</th>
@@ -73,14 +77,15 @@
             files.forEach(file => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>
+                    <td title="${file.name}">
                         <img src="icons/${file.fileType}.svg" alt="${file.fileType}" style="height: 1em; vertical-align: middle; margin-right: 0.5em;">
                         ${file.name}
                     </td>
+                    <td title="${file.path}">${file.path}</td>
                     <td>${file.size}</td>
                     <td>${file.lastModified}</td>
                     <td>${file.created}</td>
-                    <td></td>
+                    <td title="${file.attributesLong}">${file.attributes}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -97,8 +102,10 @@
             fetch(`/search?query=${searchInput}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Fetched data:', data);
                     const files = data.map(file => ({
-                        name: file["filename"],
+                        name: file["name"],
+                        path: file["path"],
                         size: file["size"]
                             ? formatSize(file["size"])
                             : '',
@@ -126,9 +133,22 @@
                             if (file["attributes"] & 16384) attr += 'E'; // Encrypted
                             return attr || '-';
                         })(),
+                        attributesLong: (file["attributes"] & 1 ? 'Read-only (R) ' : '') +
+                            (file["attributes"] & 2 ? 'Hidden (H) ' : '') +
+                            (file["attributes"] & 4 ? 'System (S) ' : '') +
+                            (file["attributes"] & 16 ? 'Directory (D) ' : '') +
+                            (file["attributes"] & 32 ? 'Archive (A) ' : '') +
+                            (file["attributes"] & 128 ? 'Normal (N) ' : '') +
+                            (file["attributes"] & 256 ? 'Temporary (T) ' : '') +
+                            (file["attributes"] & 512 ? 'Sparse file (P) ' : '') +
+                            (file["attributes"] & 1024 ? 'Reparse point (L) ' : '') +
+                            (file["attributes"] & 2048 ? 'Compressed (C) ' : '') +
+                            (file["attributes"] & 4096 ? 'Offline (O) ' : '') +
+                            (file["attributes"] & 8192 ? 'Not content indexed (I) ' : '') +
+                            (file["attributes"] & 16384 ? 'Encrypted (E)' : ''),
                         fileType: (() => {
                             if (file["attributes"] & 16) return 'folder';
-                            const ext = file["filename"].split('.').pop().toLowerCase();
+                            const ext = file["name"].split('.').pop().toLowerCase();
                             return fileEndingsMap[ext] || 'file';
                         })()
                     }));
@@ -138,7 +158,7 @@
         }
 
         // Fetch files on page load
-        fetchFiles();
+        filterFiles();
     </script>
 </body>
 

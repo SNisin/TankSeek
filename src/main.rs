@@ -1,11 +1,33 @@
 use rocket::fs::{FileServer, relative};
+use serde::{Deserialize, Serialize};
 use std::process::{self};
 mod efu_file;
 mod file_tree;
 mod list_index;
-use crate::file_tree::FileTree;
+use crate::file_tree::{Element, FileTree};
 use crate::{efu_file::import, list_index::bi_letter_reverse_index::BiLetterIndex};
 
+#[derive(Serialize, Deserialize, Clone)]
+struct FileResult {
+    name: String,
+    path: String,
+    size: Option<i64>,
+    date_modified: Option<i64>,
+    date_created: Option<i64>,
+    attributes: u32,
+}
+impl FileResult {
+    fn from_element<T: AsRef<str>>(element: &file_tree::Element, path: T) -> Self {
+        FileResult {
+            name: element.filename.clone(),
+            path: path.as_ref().to_string(),
+            size: element.size,
+            date_modified: element.date_modified,
+            date_created: element.date_created,
+            attributes: element.attributes,
+        }
+    }
+}
 
 #[macro_use]
 extern crate rocket;
@@ -16,17 +38,16 @@ fn search(
     tree: &rocket::State<FileTree>,
     bi_letter_index: &rocket::State<BiLetterIndex>,
 ) -> String {
-    let mut results = Vec::new();
+    let mut result_elements = Vec::new();
     // Normalize the query to lowercase for case-insensitive search
     let query = query.to_lowercase();
 
     // Check if the query is empty
     if query.is_empty() {
-        results = tree
+        result_elements = tree
             .get_elements()
             .iter()
             .take(100) // Limit to 100 results
-            .cloned()
             .collect();
     } else if query.len() < 2 {
         // If the query is less than 2 characters, TODO
@@ -40,22 +61,7 @@ fn search(
         for &index in &indices {
             if num_results < 100 {
                 // If we have less than 100 results, add the record to the results
-                let mut record_with_full_path = tree.get_elements()[index].clone();
-                // Construct the full path for the record from parents
-                let mut full_path = record_with_full_path.filename.clone();
-                let mut parent_index = record_with_full_path.parent;
-                while parent_index != 0 {
-                    if let Some(parent) = tree.get(parent_index) {
-                        full_path = format!("{}/{}", parent.filename, full_path);
-                        parent_index = parent.parent;
-                    } else {
-                        break; // If parent not found, break the loop
-                    }
-                }
-                // Update the filename to the full path
-                record_with_full_path.filename = full_path;
-                // Add the record to the results
-                results.push(record_with_full_path);
+                result_elements.push(&tree.get_elements()[index]);
                 num_results += 1; // Increment the number of results found
             } else {
                 // If we have 100 results, we stop adding more
@@ -99,6 +105,12 @@ fn search(
     //         num_results += 1;
     //     }
     // }
+
+    // Convert the elements to FileResult
+    let results: Vec<_> = result_elements
+        .into_iter()
+        .map(|element| FileResult::from_element(&element, tree.get_path_of(element.parent)))
+        .collect();
 
     // Convert results to JSON
     match serde_json::to_string(&results) {

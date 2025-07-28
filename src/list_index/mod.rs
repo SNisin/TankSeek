@@ -1,1 +1,1 @@
-pub mod bi_letter_reverse_index;
+pub mod bigram_reverse_index;

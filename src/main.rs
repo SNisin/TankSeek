@@ -5,7 +5,7 @@ mod efu_file;
 mod file_tree;
 mod list_index;
 use crate::file_tree::{Element, FileTree};
-use crate::{efu_file::import, list_index::bi_letter_reverse_index::BiLetterIndex};
+use crate::{efu_file::import, list_index::bigram_reverse_index::BigramIndex};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct FileResult {
@@ -36,7 +36,7 @@ extern crate rocket;
 fn search(
     query: String,
     tree: &rocket::State<FileTree>,
-    bi_letter_index: &rocket::State<BiLetterIndex>,
+    bigram_index: &rocket::State<BigramIndex>,
 ) -> String {
     let mut result_elements = Vec::new();
     // Normalize the query to lowercase for case-insensitive search
@@ -53,7 +53,7 @@ fn search(
         // If the query is less than 2 characters, TODO
         return String::from("[]");
     } else {
-        let indices = bi_letter_index.query_word(&query);
+        let indices = bigram_index.query_word(&query);
 
         // Now we have the indices of the elements that match the query
         let mut num_results = 0; // Counter for the number of results
@@ -126,18 +126,18 @@ fn rocket() -> _ {
         Ok(tree) => {
             println!("Read {} records from filelist.efu", tree.len());
 
-            // Create a bi-letter reverse index for the elements
-            println!("Creating bi-letter reverse index...");
-            let bi_letter_index = BiLetterIndex::new(&tree);
+            // Create a bigram reverse index for the elements
+            println!("Creating bigram reverse index...");
+            let bigram_index = BigramIndex::new(&tree);
             println!(
-                "Created bi-letter reverse index with {} entries",
-                bi_letter_index.len()
+                "Created bigram reverse index with {} entries",
+                bigram_index.len()
             );
 
             //  exit(0); // Exit successfully after reading the file list
             rocket::build()
                 .manage(tree)
-                .manage(bi_letter_index)
+                .manage(bigram_index)
                 .mount("/", routes![search])
                 .mount("/", FileServer::from(relative!("public")))
         }

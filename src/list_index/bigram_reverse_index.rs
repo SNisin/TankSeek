@@ -21,6 +21,8 @@ impl BigramIndex {
             bigrams.push(bigram);
         }
 
+        bigrams.dedup();
+
         // get the vector of indices for the first bigram
         let mut indices = match self.index.get(&bigrams[0]) {
             Some(indices) => indices.clone(),

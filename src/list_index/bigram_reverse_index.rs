@@ -2,8 +2,14 @@ use std::collections::HashMap;
 
 use crate::file_tree::FileTree;
 
+#[derive(Hash, Eq, PartialEq, Debug, Clone, PartialOrd, Ord)]
+pub struct Bigram {
+    pub first: char,
+    pub second: char,
+}
+
 pub struct BigramIndex {
-    pub index: HashMap<String, Vec<usize>>,
+    pub index: HashMap<Bigram, Vec<usize>>,
 }
 impl BigramIndex {
     pub fn new(tree: &FileTree) -> Self {
@@ -17,7 +23,10 @@ impl BigramIndex {
         let chars: Vec<char> = word.as_ref().chars().collect();
         for i in 0..chars.len() - 1 {
             // Create a bigram from the current and next character
-            let bigram = format!("{}{}", chars[i], chars[i + 1]);
+            let bigram = Bigram {
+                first: chars[i],
+                second: chars[i + 1],
+            };
             bigrams.push(bigram);
         }
 
@@ -65,21 +74,23 @@ impl BigramIndex {
     }
 }
 
-fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<String, Vec<usize>> {
+fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, Vec<usize>> {
     // Create a bigram reverse index for the elements
-    let mut index: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut index: HashMap<Bigram, Vec<usize>> = HashMap::new();
     for (i, element) in tree.get_elements().iter().enumerate() {
         if element.filename.len() < 2 {
             continue; // Skip filenames that are too short for bigram indexing
         }
         // take every two letters of the filename
         let filename = element.filename.to_lowercase();
-        // be aware of unicode characters, we need to handle them properly
-        let char_vec: Vec<char> = filename.chars().collect();
-        for j in 0..char_vec.len() - 1 {
+        // Split the query into bigrams (bi-letters)
+        let chars: Vec<char> = filename.chars().collect();
+        for i in 0..chars.len() - 1 {
             // Create a bigram from the current and next character
-            let bigram = format!("{}{}", char_vec[j], char_vec[j + 1]);
-            // Insert the index of the element into the index map
+            let bigram = Bigram {
+                first: chars[i],
+                second: chars[i + 1],
+            };
             index.entry(bigram).or_default().push(i);
         }
     }

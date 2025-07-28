@@ -8,8 +8,64 @@ pub struct Bigram {
     pub second: char,
 }
 
+pub struct CompressedPostingsList {
+    pub indices: Vec<u8>,
+}
+// This struct is used to store the compressed postings list
+// It stores the gaps between the indices
+// Uses variable byte codes https://nlp.stanford.edu/IR-book/html/htmledition/variable-byte-codes-1.html
+impl CompressedPostingsList {
+    pub fn new(postings_list: Vec<usize>) -> Self {
+        let mut compressed_list = Vec::with_capacity(postings_list.len() * 2);
+        let mut last_i = 0;
+        let mut bytes: [u8; 10] = [0; 10]; // Buffer for variable byte encoding
+        let mut bytes_index = 0; // Index for the bytes buffer
+        for &i in &postings_list {
+            let gap = i as usize - last_i as usize; // Calculate the gap
+            last_i = i; // Update the last index
+
+            // Encode the gap using variable byte encoding
+            let mut value = gap;
+
+            while value >= 128 {
+                bytes[bytes_index] = (value & 0x7F) as u8; // Store the last 7 bits
+                value >>= 7; // Shift right by 7 bits
+                bytes_index += 1; // Move to the next byte
+            }
+            bytes[bytes_index] = (value & 0x7F) as u8; // Store the last byte
+            bytes[0] |= 0x80; // Set the continuation bit for the last byte (when reverse)
+
+            // Reverse the bytes
+            for j in (0..=bytes_index).rev() {
+                compressed_list.push(bytes[j]);
+            }
+            bytes_index = 0; // Reset the index for the next gap
+        }
+        compressed_list.shrink_to_fit(); // Reduce capacity to the actual size
+        CompressedPostingsList {
+            indices: compressed_list,
+        }
+    }
+    pub fn decompress(&self) -> Vec<usize> {
+        let mut postings_list = Vec::new();
+        let mut last_value = 0; // Last value to calculate gaps
+        let mut current_value = 0;
+        for &byte in &self.indices {
+            if byte < 128 {
+                current_value = (current_value << 7) | (byte as usize); // Add the byte to the current value
+            } else {
+                current_value = (current_value << 7) | (byte & 0x7F) as usize; // Add the byte without the continuation bit
+                last_value += current_value; // Update the last value
+                postings_list.push(last_value); // Add the decompressed index
+                current_value = 0; // Reset for the next value
+            }
+        }
+        postings_list
+    }
+}
+
 pub struct BigramIndex {
-    pub index: HashMap<Bigram, Vec<usize>>,
+    pub index: HashMap<Bigram, CompressedPostingsList>,
 }
 impl BigramIndex {
     pub fn new(tree: &FileTree) -> Self {
@@ -34,14 +90,15 @@ impl BigramIndex {
 
         // get the vector of indices for the first bigram
         let mut indices = match self.index.get(&bigrams[0]) {
-            Some(indices) => indices.clone(),
+            Some(indices) => indices.decompress(),
             None => {
                 return Vec::new(); // If the first bigram is not found, return an empty vector
             }
         };
         // Iterate over the remaining bigrams and filter the indices
         for bigram in &bigrams[1..] {
-            if let Some(next_indices) = self.index.get(bigram) {
+            if let Some(postings_list) = self.index.get(bigram) {
+                let next_indices = postings_list.decompress();
                 // Only keep indices that are present in both the current indices and the next indices
                 // As both lists are sorted, we can use a two-pointer technique
                 let mut filtered_indices = Vec::new();
@@ -74,7 +131,7 @@ impl BigramIndex {
     }
 }
 
-fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, Vec<usize>> {
+fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, CompressedPostingsList> {
     // Create a bigram reverse index for the elements
     let mut index: HashMap<Bigram, Vec<usize>> = HashMap::new();
     for (i, element) in tree.get_elements().iter().enumerate() {
@@ -94,12 +151,44 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, Vec<usize>> {
             index.entry(bigram).or_default().push(i);
         }
     }
-
     // Ensure indices are unique and sorted
     for indices in index.values_mut() {
         indices.sort_unstable(); // Should already be sorted, but just in case
         indices.dedup(); // Remove duplicates
         indices.shrink_to_fit(); // Reduce capacity to the actual number of indices
     }
-    index
+
+    let mut compressed_index: HashMap<Bigram, CompressedPostingsList> = HashMap::new();
+    for (bigram, indices) in index {
+        compressed_index.insert(bigram, CompressedPostingsList::new(indices));
+    }
+
+    compressed_index
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compressed_postings_list() {
+        let postings_list_tests = vec![
+            vec![1, 2, 3, 4, 5],
+            vec![100, 200, 300, 400],
+            vec![1, 42357, 845376, 845378, 1047637],
+            vec![
+                142357,
+                1844674407370955160,
+                1844674407370955161,
+                18446744073709551600,
+                18446744073709551615,
+            ],
+        ];
+        for postings_list in postings_list_tests {
+            let compressed = CompressedPostingsList::new(postings_list.clone());
+            println!("Compressed: {:?}", compressed.indices);
+            let decompressed = compressed.decompress();
+            assert_eq!(postings_list, decompressed);
+        }
+    }
 }

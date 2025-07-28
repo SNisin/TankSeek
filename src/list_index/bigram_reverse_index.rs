@@ -85,11 +85,11 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, Vec<usize>> {
         let filename = element.filename.to_lowercase();
         // Split the query into bigrams (bi-letters)
         let chars: Vec<char> = filename.chars().collect();
-        for i in 0..chars.len() - 1 {
+        for j in 0..chars.len() - 1 {
             // Create a bigram from the current and next character
             let bigram = Bigram {
-                first: chars[i],
-                second: chars[i + 1],
+                first: chars[j],
+                second: chars[j + 1],
             };
             index.entry(bigram).or_default().push(i);
         }
@@ -97,8 +97,8 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, Vec<usize>> {
 
     // Ensure indices are unique and sorted
     for indices in index.values_mut() {
+        indices.sort_unstable(); // Should already be sorted, but just in case
         indices.dedup(); // Remove duplicates
-        indices.sort_unstable();
         indices.shrink_to_fit(); // Reduce capacity to the actual number of indices
     }
     index

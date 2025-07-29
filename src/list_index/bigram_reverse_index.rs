@@ -97,13 +97,12 @@ impl BigramIndex {
             }
         };
         // Iterate over the remaining bigrams and filter the indices
+        let mut filtered_indices = Vec::with_capacity(indices.len());
         for bigram in &bigrams[1..] {
             if let Some(postings_list) = self.index.get(bigram) {
                 let next_indices = postings_list.decompress();
                 // Only keep indices that are present in both the current indices and the next indices
                 // As both lists are sorted, we can use a two-pointer technique
-                let mut filtered_indices =
-                    Vec::with_capacity(indices.len().min(next_indices.len()));
                 let mut i = 0;
                 let mut j = 0;
                 while i < indices.len() && j < next_indices.len() {
@@ -117,13 +116,15 @@ impl BigramIndex {
                         j += 1; // Move to the next index in the next indices
                     }
                 }
-                indices = filtered_indices; // Update indices to the filtered list
+
+                (indices, filtered_indices) = (filtered_indices, indices); // Update indices to the filtered list
+                filtered_indices.clear(); // Clear the filtered indices for the next iteration
             } else {
                 // If no indices found for the current bigram, return empty results
                 return Vec::new();
             }
         }
-
+        indices.shrink_to_fit(); // Reduce capacity to the actual size
         indices
     }
 

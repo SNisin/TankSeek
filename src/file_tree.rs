@@ -20,14 +20,12 @@ impl Element {
             size: None,
             date_modified: None,
             date_created: None,
-            attributes: 0, // Assuming root has no attributes
-            parent: 0,     // Root has no parent
+            attributes: 0,        // Assuming root has no attributes
+            parent: 0,            // Root has no parent
             children: Vec::new(), // Root has no children initially
         }
     }
 }
-
-
 
 pub struct FileTree {
     elements: Vec<Element>,
@@ -73,8 +71,6 @@ impl FileTree {
             current_index = element.parent;
         }
         path
-
-        
     }
 
     pub fn collect_all_children(&self, index: usize) -> Vec<usize> {
@@ -101,7 +97,7 @@ impl FileTree {
         // Reduce the capacity of the elements vector to fit the current number of elements
         self.elements.shrink_to_fit();
     }
-    pub  fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         // Return the number of elements in the tree
         self.elements.len()
     }

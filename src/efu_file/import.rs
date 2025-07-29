@@ -48,12 +48,17 @@ pub fn import_efu<P: AsRef<Path>>(filepath: P) -> Result<FileTree, Box<dyn Error
 
         // find longest existing path in the elements_map try longest path first
         let mut start_part: i32 = 0;
+        let full_path_normalized = parts.join("/");
+        let mut cur_path = &full_path_normalized[..full_path_normalized.len()];
+
         for i in (0..parts.len()).rev() {
-            let path = parts[0..=i].join("/");
-            if let Some(&index) = elements_map.get(&path) {
+            if let Some(&index) = elements_map.get(cur_path) {
                 current_element = index;
                 start_part = (i as i32) + 1; // Store the index of the last part of the longest existing path
                 break; // Found the longest existing path, no need to check further
+            }
+            if i!=0 {
+                cur_path = &cur_path[..cur_path.len() - parts[i].len() - 1]
             }
         }
 

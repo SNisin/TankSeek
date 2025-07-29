@@ -47,7 +47,7 @@ impl CompressedPostingsList {
         }
     }
     pub fn decompress(&self) -> Vec<usize> {
-        let mut postings_list = Vec::new();
+        let mut postings_list = Vec::with_capacity(self.indices.len());
         let mut last_value = 0; // Last value to calculate gaps
         let mut current_value = 0;
         for &byte in &self.indices {
@@ -60,6 +60,7 @@ impl CompressedPostingsList {
                 current_value = 0; // Reset for the next value
             }
         }
+        postings_list.shrink_to_fit(); // Reduce capacity to the actual size
         postings_list
     }
 }
@@ -101,7 +102,8 @@ impl BigramIndex {
                 let next_indices = postings_list.decompress();
                 // Only keep indices that are present in both the current indices and the next indices
                 // As both lists are sorted, we can use a two-pointer technique
-                let mut filtered_indices = Vec::new();
+                let mut filtered_indices =
+                    Vec::with_capacity(indices.len().min(next_indices.len()));
                 let mut i = 0;
                 let mut j = 0;
                 while i < indices.len() && j < next_indices.len() {

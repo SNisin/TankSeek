@@ -6,6 +6,7 @@ mod file_tree;
 mod list_index;
 use crate::file_tree::{Element, FileTree};
 use crate::{efu_file::import, list_index::bigram_reverse_index::BigramIndex};
+use std::time::Instant;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct FileResult {
@@ -122,16 +123,23 @@ fn search(
 #[launch]
 fn rocket() -> _ {
     println!("Reading file list...");
+    let start = Instant::now();
     match import::import_efu("filelist.efu") {
         Ok(tree) => {
-            println!("Read {} records from filelist.efu", tree.len());
+            println!(
+                "Read {} records from filelist.efu in {:?}",
+                tree.len(),
+                start.elapsed()
+            );
 
             // Create a bigram reverse index for the elements
             println!("Creating bigram reverse index...");
+            let start = Instant::now();
             let bigram_index = BigramIndex::new(&tree);
             println!(
-                "Created bigram reverse index with {} entries",
-                bigram_index.len()
+                "Created bigram reverse index with {} entries in {:?}",
+                bigram_index.len(),
+                start.elapsed()
             );
 
             //  exit(0); // Exit successfully after reading the file list

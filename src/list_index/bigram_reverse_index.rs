@@ -10,6 +10,7 @@ pub struct Bigram {
 
 pub struct CompressedPostingsList {
     pub indices: Vec<u8>,
+    pub length: usize,
 }
 // This struct is used to store the compressed postings list
 // It stores the gaps between the indices
@@ -44,10 +45,11 @@ impl CompressedPostingsList {
         compressed_list.shrink_to_fit(); // Reduce capacity to the actual size
         CompressedPostingsList {
             indices: compressed_list,
+            length: postings_list.len(),
         }
     }
     pub fn decompress(&self) -> Vec<usize> {
-        let mut postings_list = Vec::with_capacity(self.indices.len());
+        let mut postings_list = Vec::with_capacity(self.length);
         let mut last_value = 0; // Last value to calculate gaps
         let mut current_value = 0;
         for &byte in &self.indices {
@@ -60,7 +62,6 @@ impl CompressedPostingsList {
                 current_value = 0; // Reset for the next value
             }
         }
-        postings_list.shrink_to_fit(); // Reduce capacity to the actual size
         postings_list
     }
 }

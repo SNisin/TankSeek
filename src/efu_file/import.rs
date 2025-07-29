@@ -2,6 +2,8 @@ use std::{collections::HashMap, error::Error, io, path::Path};
 
 use serde::{Deserialize, Serialize};
 
+use bumpalo::{Bump, collections::Vec as BumpVec};
+
 use crate::file_tree::{Element, FileTree};
 
 #[derive(Deserialize, Serialize)]
@@ -34,11 +36,14 @@ pub fn import_efu<P: AsRef<Path>>(filepath: P) -> Result<FileTree, Box<dyn Error
     // Cache HashMap to store the elements by path
     let mut elements_map: HashMap<String, usize> = HashMap::new();
 
+    let mut bump = Bump::with_capacity(1000);
+
     // Iterate over the records and build the tree structure
     for record in rdr.deserialize() {
         let record: Record = record?;
         // Split the filename into parts \ and /
-        let parts: Vec<&str> = record.filename.split(&['\\', '/'][..]).collect();
+        let mut parts: BumpVec<&str> = BumpVec::new_in(&bump);
+        parts.extend(record.filename.split(&['\\', '/'][..]));
         let mut current_element = 0; // Start with the root element
 
         // find longest existing path in the elements_map try longest path first
@@ -82,6 +87,9 @@ pub fn import_efu<P: AsRef<Path>>(filepath: P) -> Result<FileTree, Box<dyn Error
                 "Element not found for update",
             )));
         }
+
+        drop(parts);
+        bump.reset(); // Reset the bump allocator for the next iteration
 
         // println!("Added file: {}", record.filename);
     }

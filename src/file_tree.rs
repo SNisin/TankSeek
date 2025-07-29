@@ -57,10 +57,10 @@ impl FileTree {
         &self.elements
     }
 
-    pub fn get_path_of(&self, index: usize) -> String {
+    pub fn get_full_path(&self, index: usize) -> String {
         // Get the path of the element at the specified index. Not including the filename itself.
         let mut path = String::new();
-        let mut current_index = self.elements[index].parent;
+        let mut current_index = index;
         while current_index != 0 {
             let element = &self.elements[current_index];
             if !path.is_empty() {

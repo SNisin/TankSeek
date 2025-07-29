@@ -110,7 +110,7 @@ fn search(
     // Convert the elements to FileResult
     let results: Vec<_> = result_elements
         .into_iter()
-        .map(|element| FileResult::from_element(&element, tree.get_path_of(element.parent)))
+        .map(|element| FileResult::from_element(&element, tree.get_full_path(element.parent)))
         .collect();
 
     // Convert results to JSON

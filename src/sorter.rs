@@ -67,7 +67,11 @@ impl Sorter {
                 order[index] = i;
             }
 
-            println!("Filename order prepared with {} entries in {:?}", order.len(), timestamp.elapsed());
+            println!(
+                "Filename order prepared with {} entries in {:?}",
+                order.len(),
+                timestamp.elapsed()
+            );
             filename_order.replace(order);
         }
     }

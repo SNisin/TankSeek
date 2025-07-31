@@ -4,7 +4,9 @@ use std::process::{self};
 mod efu_file;
 mod file_tree;
 mod list_index;
+mod sorter;
 use crate::file_tree::{Element, FileTree};
+use crate::sorter::{SortField, SortOrder, Sorter};
 use crate::{efu_file::import, list_index::bigram_reverse_index::BigramIndex};
 use std::time::Instant;
 
@@ -33,46 +35,64 @@ impl FileResult {
 #[macro_use]
 extern crate rocket;
 
-#[get("/search?<query>")]
+#[get("/search?<query>&<sort_by>&<sort_order>")]
 fn search(
     query: String,
+    sort_by: Option<String>,
+    sort_order: Option<String>,
     tree: &rocket::State<FileTree>,
     bigram_index: &rocket::State<BigramIndex>,
+    sorter: &rocket::State<Sorter>,
 ) -> String {
-    let mut result_elements = Vec::new();
+    let mut indices;
+
     // Normalize the query to lowercase for case-insensitive search
     let query = query.to_lowercase();
 
     // Check if the query is empty
     if query.is_empty() {
-        result_elements = tree
-            .get_elements()
-            .iter()
-            .take(100) // Limit to 100 results
-            .collect();
+        indices = (0..tree.len()).collect::<Vec<usize>>();
     } else if query.len() < 2 {
         // If the query is less than 2 characters, TODO
         return String::from("[]");
     } else {
-        let indices = bigram_index.query_word(&query);
+        indices = bigram_index.query_word(&query);
+    }
 
-        // Now we have the indices of the elements that match the query
-        let mut num_results = 0; // Counter for the number of results
-        // Prepare the results based on the indices
-        for &index in &indices {
-            if num_results < 100 {
-                // If we have less than 100 results, add the record to the results
-                result_elements.push(&tree.get_elements()[index]);
-                num_results += 1; // Increment the number of results found
-            } else {
-                // If we have 100 results, we stop adding more
-                break;
-            }
+    println!(
+        "Found {} matching records for query '{}'",
+        indices.len(),
+        query
+    );
+    if sort_by.is_some() {
+        let sort_by: SortField = match sort_by.as_deref() {
+            Some("name") => SortField::Filename,
+            Some("date_modified") => SortField::DateModified,
+            Some("date_created") => SortField::DateCreated,
+            Some("size") => SortField::Size,
+            _ => SortField::Filename, // Default sort by filename
+        };
+        let sort_order: SortOrder = match sort_order.as_deref() {
+            Some("ascending") => SortOrder::Ascending,
+            Some("descending") => SortOrder::Descending,
+            _ => SortOrder::Ascending, // Default sort order
+        };
+        sorter.sort_by(&tree, indices.as_mut_slice(), sort_by, sort_order);
+    }
+
+    let mut result_elements = Vec::new();
+    // Now we have the indices of the elements that match the query
+    let mut num_results = 0; // Counter for the number of results
+    // Prepare the results based on the indices
+    for &index in &indices {
+        if num_results < 100 {
+            // If we have less than 100 results, add the record to the results
+            result_elements.push(&tree.get_elements()[index]);
+            num_results += 1; // Increment the number of results found
+        } else {
+            // If we have 100 results, we stop adding more
+            break;
         }
-        println!(
-            "Found {} matching records for query '{}'",
-            num_results, query
-        );
     }
 
     // Iterate over the records and filter based on the query
@@ -136,6 +156,7 @@ fn rocket() -> _ {
             println!("Creating bigram reverse index...");
             let start = Instant::now();
             let bigram_index = BigramIndex::new(&tree);
+            let sorter: Sorter = Sorter::new();
             println!(
                 "Created bigram reverse index with {} entries in {:?}",
                 bigram_index.len(),
@@ -146,6 +167,7 @@ fn rocket() -> _ {
             rocket::build()
                 .manage(tree)
                 .manage(bigram_index)
+                .manage(sorter)
                 .mount("/", routes![search])
                 .mount("/", FileServer::from(relative!("public")))
         }

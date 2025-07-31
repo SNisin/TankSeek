@@ -70,7 +70,9 @@
         <table class="resizeableTable">
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th onclick="toggleSortByName()" style="user-select:none;">
+                        Name <span id="nameSortIndicator"></span>
+                    </th>
                     <th>Path</th>
                     <th>Size</th>
                     <th>Last Modified</th>
@@ -129,9 +131,11 @@
             else return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
         }
 
+        let sortBy = null;
+        let sortOrder = "ascending";
         function filterFiles() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            fetch(`/search?query=${searchInput}`)
+            fetch(`/search?query=${searchInput}` + (sortBy ? `&sort_by=${sortBy}&sort_order=${sortOrder}` : ''))
                 .then(response => response.json())
                 .then(data => {
                     console.log('Fetched data:', data);
@@ -194,6 +198,19 @@
                 .catch(error => console.error('Error fetching files:', error));
         }
 
+
+
+        function toggleSortByName() {
+            const indicator = document.getElementById('nameSortIndicator');
+            if (sortBy === 'name') {
+                sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';
+            } else {
+                sortBy = 'name';
+                sortOrder = 'ascending';
+            }
+            indicator.textContent = sortOrder === 'ascending' ? '↑' : '↓';
+            filterFiles();
+        }
 
         const createResizableTable = function (table) {
             const cols = table.querySelectorAll('th');

@@ -60,6 +60,25 @@
             padding: 5px;
             width: 100%;
         }
+
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sortable:hover {
+            background-color: #e0e0e0;
+        }
+
+        .ascending.sortable::after {
+            content: " ↑";
+            font-size: 0.8em;
+        }
+
+        .descending.sortable::after {
+            content: " ↓";
+            font-size: 0.8em;
+        }
     </style>
 </head>
 
@@ -70,14 +89,14 @@
         <table class="resizeableTable">
             <thead>
                 <tr>
-                    <th onclick="toggleSortByName()" style="user-select:none;">
+                    <th id="nameHeader" class="sortable">
                         Name <span id="nameSortIndicator"></span>
                     </th>
                     <th>Path</th>
-                    <th>Size</th>
-                    <th>Last Modified</th>
-                    <th>Created</th>
-                    <th>Attributes</th>
+                    <th id="sizeHeader" class="sortable">Size</th>
+                    <th id="lastModifiedHeader" class="sortable">Last Modified</th>
+                    <th id="createdHeader" class="sortable">Created</th>
+                    <th id="AttributesHeader" class="sortable">Attributes</th>
                 </tr>
             </thead>
             <tbody id="fileTableBody">
@@ -199,18 +218,45 @@
         }
 
 
+        const sortFieldMap = {
+            "nameHeader": "filename",
+            "sizeHeader": "size",
+            "lastModifiedHeader": "date_modified",
+            "createdHeader": "date_created",
+        }
+        const reverseSortFieldMap = Object.fromEntries(Object.entries(sortFieldMap).map(([k, v]) => [v, k]));
 
-        function toggleSortByName() {
-            const indicator = document.getElementById('nameSortIndicator');
-            if (sortBy === 'name') {
+
+        function toggleSortBy(field) {
+            console.log(`Toggling sort by: ${field}`);
+            if (sortBy === field) {
                 sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';
             } else {
-                sortBy = 'name';
+                sortBy = field;
                 sortOrder = 'ascending';
             }
-            indicator.textContent = sortOrder === 'ascending' ? '↑' : '↓';
+
+            // Update the class on the header to indicate sorting direction
+            const headers = document.querySelectorAll('.sortable');
+            headers.forEach(header => {
+                header.classList.remove('ascending', 'descending');
+            });
+            const currentHeader = document.getElementById(reverseSortFieldMap[sortBy]);
+            if (currentHeader) {
+                currentHeader.classList.add(sortOrder);
+            }
+
             filterFiles();
         }
+
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', () => {
+                const field = sortFieldMap[header.id];
+                if (field) {
+                    toggleSortBy(field);
+                }
+            });
+        });
 
         const createResizableTable = function (table) {
             const cols = table.querySelectorAll('th');

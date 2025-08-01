@@ -9,7 +9,8 @@
         #searchResults {
             display: inline-block;
             /* padding: 1em; */
-            margin-top: 30px; /* Adjust based on nav height */
+            margin-top: 30px;
+            /* Adjust based on nav height */
         }
 
         table {
@@ -61,7 +62,7 @@
             background-color: #f0f0f0;
         }
 
-        
+
 
         .sortable {
             cursor: pointer;
@@ -81,12 +82,14 @@
             content: " ↓";
             font-size: 0.8em;
         }
+
         body {
             overflow-x: auto;
             font-family: Arial, sans-serif;
             font-size: 14px;
             margin: 8px;
         }
+
         nav {
             /* always on top */
             position: fixed;
@@ -99,15 +102,19 @@
             z-index: 1000;
             width: 100%;
         }
+
         nav input {
             padding: 5px;
             width: 100%;
         }
+
         /* table headers also sticky just below the nav */
         .resizableTable thead {
             position: sticky;
-            top: 30px; /* Adjust based on nav height */
-            z-index: 999; /* Ensure headers are above other content */
+            top: 30px;
+            /* Adjust based on nav height */
+            z-index: 999;
+            /* Ensure headers are above other content */
         }
 
         * {
@@ -202,24 +209,9 @@
             }
             return attrString.trim() || '-';
         }
-        let fileData = [];
-        let currentOffset = 0;
-        let pageSize = 100; // Number of files to display per page
-        let totalResults = 0;
-
-        function displayFiles(files) {
-            const tableBody = document.getElementById('fileTableBody');
-            tableBody.innerHTML = ''; // Clear existing rows
-
-            appendFiles(files)
-
-        }
-        function appendFiles(newFiles) {
-            const tableBody = document.getElementById('fileTableBody');
-
-            newFiles.forEach(file => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+        function createRow(file) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
                     <td title="${file.name}">
                         <img src="icons/${getFileType(file)}.svg" alt="${getFileType(file)}" style="height: 1em; vertical-align: middle; margin-right: 0.5em;">
                         ${file.name}
@@ -230,7 +222,27 @@
                     <td>${timestampToLocaleString(file["date_created"])}</td>
                     <td title="${attributeBitmapToString(file["attributes"], true)}">${attributeBitmapToString(file["attributes"], false)}</td>
                 `;
-                tableBody.appendChild(row);
+            return row;
+        }
+        let fileData = [];
+        let currentOffset = 0;
+        let pageSize = 100; // Number of files to display per page
+        let totalResults = 0;
+
+        function displayFiles() {
+            const tableBody = document.getElementById('fileTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            fileData.forEach(file => {
+                tableBody.appendChild(createRow(file));
+            });
+
+        }
+        function appendFiles(newFiles) {
+            const tableBody = document.getElementById('fileTableBody');
+
+            newFiles.forEach(file => {
+                tableBody.appendChild(createRow(file));
             });
         }
         function getFileType(file) {
@@ -255,7 +267,7 @@
                     pageSize = data.page_size;
                     currentOffset = data.offset;
 
-                    displayFiles(fileData);
+                    displayFiles();
 
                     const table = document.querySelector('.resizableTable');
                     if (table && !table.classList.contains('resConfigured')) {

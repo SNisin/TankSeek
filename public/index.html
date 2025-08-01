@@ -86,7 +86,7 @@
     <h1>File Search</h1>
     <input type="text" id="searchInput" placeholder="Search files..." oninput="filterFiles()">
     <div id="searchResults">
-        <table class="resizeableTable">
+        <table class="resizableTable">
             <thead>
                 <tr>
                     <th id="nameHeader" class="sortable">
@@ -123,6 +123,51 @@
 
         }
 
+        function timestampToLocaleString(timestamp) {
+            if (timestamp === null || timestamp === undefined) return '';
+            return new Date(Number(timestamp) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
+        }
+        function formatSize(size) {
+            if (size === null || size === undefined) return '';
+            if (size < 1024) return `${size} B`;
+            else if (size < 1024 * 1024) return `${(size / 1024).toLocaleString(undefined, { maximumFractionDigits: 2 })} KiB`;
+            else if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toLocaleString(undefined, { maximumFractionDigits: 2 })} MiB`;
+            else return `${(size / (1024 * 1024 * 1024)).toLocaleString(undefined, { maximumFractionDigits: 2 })} GiB`;
+        }
+        function formatSizeAsBytes(size) {
+            if (size === null || size === undefined) return '';
+            // add thousand separators for the correct locale
+            return size.toLocaleString() + ' B';
+
+
+
+        }
+        const attributes = {
+            1: { long: 'Read-only', short: 'R' },
+            2: { long: 'Hidden', short: 'H' },
+            4: { long: 'System', short: 'S' },
+            16: { long: 'Directory', short: 'D' },
+            32: { long: 'Archive', short: 'A' },
+            128: { long: 'Normal', short: 'N' },
+            256: { long: 'Temporary', short: 'T' },
+            512: { long: 'Sparse file', short: 'P' },
+            1024: { long: 'Reparse point', short: 'L' },
+            2048: { long: 'Compressed', short: 'C' },
+            4096: { long: 'Offline', short: 'O' },
+            8192: { long: 'Not content indexed', short: 'I' },
+            16384: { long: 'Encrypted', short: 'E' }
+        };
+        function attributeBitmapToString(attribute, long) {
+            if (attribute === 0) return '-';
+            let attrString = '';
+            for (const [key, value] of Object.entries(attributes)) {
+                if (attribute & key) {
+                    attrString += long ? value.long + `(${value.short}) ` : value.short;
+                }
+            }
+            return attrString.trim() || '-';
+        }
+
         function displayFiles(files) {
             const tableBody = document.getElementById('fileTableBody');
             tableBody.innerHTML = ''; // Clear existing rows
@@ -131,24 +176,26 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td title="${file.name}">
-                        <img src="icons/${file.fileType}.svg" alt="${file.fileType}" style="height: 1em; vertical-align: middle; margin-right: 0.5em;">
+                        <img src="icons/${getFileType(file)}.svg" alt="${getFileType(file)}" style="height: 1em; vertical-align: middle; margin-right: 0.5em;">
                         ${file.name}
                     </td>
                     <td title="${file.path}">${file.path}</td>
-                    <td>${file.size}</td>
-                    <td>${file.lastModified}</td>
-                    <td>${file.created}</td>
-                    <td title="${file.attributesLong}">${file.attributes}</td>
+                    <td title="${formatSizeAsBytes(file.size)}">${formatSize(file.size)}</td>
+                    <td>${timestampToLocaleString(file["date_modified"])}</td>
+                    <td>${timestampToLocaleString(file["date_created"])}</td>
+                    <td title="${attributeBitmapToString(file["attributes"], true)}">${attributeBitmapToString(file["attributes"], false)}</td>
                 `;
                 tableBody.appendChild(row);
             });
         }
-        function formatSize(size) {
-            if (size < 1024) return `${size} B`;
-            else if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KiB`;
-            else if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MiB`;
-            else return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
+        function getFileType(file) {
+            if (file["attributes"] & 16) {
+                return "folder";
+            }
+            const ext = file["name"].split('.').pop().toLowerCase();
+            return fileEndingsMap[ext] || "file";
         }
+
 
         let sortBy = null;
         let sortOrder = "ascending";
@@ -157,59 +204,9 @@
             fetch(`/search?query=${searchInput}` + (sortBy ? `&sort_by=${sortBy}&sort_order=${sortOrder}` : ''))
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Fetched data:', data);
-                    const files = data.map(file => ({
-                        name: file["name"],
-                        path: file["path"],
-                        size: file["size"]
-                            ? formatSize(file["size"])
-                            : '',
-                        lastModified: file["date_modified"]
-                            ? new Date(Number(file["date_modified"]) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
-                            : '',
-                        created: file["date_created"]
-                            ? new Date(Number(file["date_created"]) / 10000 + Date.UTC(1601, 0, 1)).toLocaleString()
-                            : '',
-                        // attributes: Read-only (R): 1, Hidden (H): 2, System (S); 4,  Directory (D): 16, Archive (A): 32, Normal (N): 128, Temporary (T): 256, Sparse file (P): 512, Reparse point (L): 1024, Compressed (C): 2048, Offline (O): 4096, Not content indexed (I): 8192, Encrypted (E): 16384
-                        attributes: (() => {
-                            let attr = '';
-                            if (file["attributes"] & 1) attr += 'R'; // Read-only
-                            if (file["attributes"] & 2) attr += 'H'; // Hidden
-                            if (file["attributes"] & 4) attr += 'S'; // System
-                            if (file["attributes"] & 16) attr += 'D'; // Directory
-                            if (file["attributes"] & 32) attr += 'A'; // Archive
-                            if (file["attributes"] & 128) attr += 'N'; // Normal
-                            if (file["attributes"] & 256) attr += 'T'; // Temporary
-                            if (file["attributes"] & 512) attr += 'P'; // Sparse file
-                            if (file["attributes"] & 1024) attr += 'L'; // Reparse point
-                            if (file["attributes"] & 2048) attr += 'C'; // Compressed
-                            if (file["attributes"] & 4096) attr += 'O'; // Offline
-                            if (file["attributes"] & 8192) attr += 'I'; // Not content indexed
-                            if (file["attributes"] & 16384) attr += 'E'; // Encrypted
-                            return attr || '-';
-                        })(),
-                        attributesLong: (file["attributes"] & 1 ? 'Read-only (R) ' : '') +
-                            (file["attributes"] & 2 ? 'Hidden (H) ' : '') +
-                            (file["attributes"] & 4 ? 'System (S) ' : '') +
-                            (file["attributes"] & 16 ? 'Directory (D) ' : '') +
-                            (file["attributes"] & 32 ? 'Archive (A) ' : '') +
-                            (file["attributes"] & 128 ? 'Normal (N) ' : '') +
-                            (file["attributes"] & 256 ? 'Temporary (T) ' : '') +
-                            (file["attributes"] & 512 ? 'Sparse file (P) ' : '') +
-                            (file["attributes"] & 1024 ? 'Reparse point (L) ' : '') +
-                            (file["attributes"] & 2048 ? 'Compressed (C) ' : '') +
-                            (file["attributes"] & 4096 ? 'Offline (O) ' : '') +
-                            (file["attributes"] & 8192 ? 'Not content indexed (I) ' : '') +
-                            (file["attributes"] & 16384 ? 'Encrypted (E)' : ''),
-                        fileType: (() => {
-                            if (file["attributes"] & 16) return 'folder';
-                            const ext = file["name"].split('.').pop().toLowerCase();
-                            return fileEndingsMap[ext] || 'file';
-                        })()
-                    }));
-                    displayFiles(files);
+                    displayFiles(data);
 
-                    const table = document.querySelector('.resizeableTable');
+                    const table = document.querySelector('.resizableTable');
                     if (table && !table.classList.contains('resConfigured')) {
                         createResizableTable(table);
                     }
@@ -250,7 +247,9 @@
         }
 
         document.querySelectorAll('.sortable').forEach(header => {
-            header.addEventListener('click', () => {
+            header.addEventListener('click', (e) => {
+                // If not clicked on the resizer, toggle sort
+                if (e.target.classList.contains('resizer')) return;
                 const field = sortFieldMap[header.id];
                 if (field) {
                     toggleSortBy(field);

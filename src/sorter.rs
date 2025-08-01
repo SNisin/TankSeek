@@ -1,9 +1,5 @@
-use core::time;
-use std::sync::Mutex;
-
-use bumpalo::collections::vec;
-
 use crate::file_tree::FileTree;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortField {

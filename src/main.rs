@@ -1,3 +1,4 @@
+use bumpalo::collections::vec;
 use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
@@ -184,7 +185,7 @@ fn search(
         total: result_indices.len(),
         offset: offset.unwrap_or(0),
         page_size: 100, // Fixed page size for now
-        time_taken: time_start.elapsed().as_millis(),
+        time_taken: time_start.elapsed().as_micros(),
     };
     // Convert results to JSON
     match serde_json::to_string(&results) {

@@ -8,7 +8,8 @@
     <style>
         #searchResults {
             display: inline-block;
-            padding: 1em;
+            /* padding: 1em; */
+            margin-top: 30px; /* Adjust based on nav height */
         }
 
         table {
@@ -55,11 +56,7 @@
             background-color: #f0f0f0;
         }
 
-        input {
-            margin-bottom: 10px;
-            padding: 5px;
-            width: 100%;
-        }
+        
 
         .sortable {
             cursor: pointer;
@@ -79,12 +76,42 @@
             content: " ↓";
             font-size: 0.8em;
         }
+        body {
+            overflow-x: auto;
+        }
+        nav {
+            /* always on top */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #f4f4f4;
+            padding: 0 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            width: 100%;
+        }
+        nav input {
+            padding: 5px;
+            width: 100%;
+        }
+        /* table headers also sticky just below the nav */
+        .resizableTable thead {
+            position: sticky;
+            top: 30px; /* Adjust based on nav height */
+            z-index: 999; /* Ensure headers are above other content */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
     </style>
 </head>
 
 <body>
-    <h1>File Search</h1>
-    <input type="text" id="searchInput" placeholder="Search files..." oninput="filterFiles()">
+    <nav>
+        <input type="text" id="searchInput" placeholder="Search files..." oninput="filterFiles()">
+    </nav>
     <div id="searchResults">
         <table class="resizableTable">
             <thead>

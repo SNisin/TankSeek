@@ -163,9 +163,17 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, CompressedPos
     }
 
     let mut compressed_index: HashMap<Bigram, CompressedPostingsList> = HashMap::new();
+    let mut total_size = 0;
     for (bigram, indices) in index {
-        compressed_index.insert(bigram, CompressedPostingsList::new(indices));
+        let comp_post = CompressedPostingsList::new(indices);
+        total_size += comp_post.indices.len(); // Calculate the size of the compressed postings list
+        compressed_index.insert(bigram, comp_post);
     }
+    println!(
+        "Created bigram reverse index with {} entries and total size of {} bytes",
+        compressed_index.len(),
+        total_size
+    );
 
     compressed_index
 }

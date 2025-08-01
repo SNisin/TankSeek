@@ -101,7 +101,7 @@ fn search(
             indices = (0..tree.len()).collect::<Vec<usize>>();
         } else if query.len() < 2 {
             // If the query is less than 2 characters, TODO
-            return String::from("[]");
+            indices = vec![];
         } else {
             indices = bigram_index.query_word(&query);
         }

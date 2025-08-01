@@ -167,12 +167,22 @@
             }
             return attrString.trim() || '-';
         }
+        let fileData = [];
+        let currentOffset = 0;
+        let pageSize = 100; // Number of files to display per page
+        let totalResults = 0;
 
         function displayFiles(files) {
             const tableBody = document.getElementById('fileTableBody');
             tableBody.innerHTML = ''; // Clear existing rows
 
-            files.forEach(file => {
+            appendFiles(files)
+
+        }
+        function appendFiles(newFiles) {
+            const tableBody = document.getElementById('fileTableBody');
+
+            newFiles.forEach(file => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td title="${file.name}">
@@ -201,19 +211,48 @@
         let sortOrder = "ascending";
         function filterFiles() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            isFetching = true;
             fetch(`/search?query=${searchInput}` + (sortBy ? `&sort_by=${sortBy}&sort_order=${sortOrder}` : ''))
                 .then(response => response.json())
                 .then(data => {
-                    displayFiles(data);
+                    fileData = data.results;
+                    totalResults = data.total;
+                    pageSize = data.page_size;
+                    currentOffset = data.offset;
+
+                    displayFiles(fileData);
 
                     const table = document.querySelector('.resizableTable');
                     if (table && !table.classList.contains('resConfigured')) {
                         createResizableTable(table);
                     }
+                    isFetching = false;
                 })
                 .catch(error => console.error('Error fetching files:', error));
         }
+        let isFetching = false;
+        // if scrolling, fetch more files
+        document.addEventListener('scroll', function () {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight || document.body.clientHeight;
 
+            // If scrolled to the bottom, fetch more files
+            if (scrollTop + clientHeight >= scrollHeight - 10) {
+                if (!isFetching && fileData.length < totalResults) {
+                    isFetching = true;
+                    currentOffset += pageSize; // Increment offset by page size
+                    fetch(`/search?query=${document.getElementById('searchInput').value.toLowerCase()}&offset=${currentOffset}&page_size=${pageSize}` + (sortBy ? `&sort_by=${sortBy}&sort_order=${sortOrder}` : ''))
+                        .then(response => response.json())
+                        .then(data => {
+                            fileData = fileData.concat(data.results);
+                            appendFiles(data.results);
+                            isFetching = false;
+                        })
+                        .catch(error => console.error('Error fetching more files:', error));
+                }
+            }
+        });
 
         const sortFieldMap = {
             "nameHeader": "filename",

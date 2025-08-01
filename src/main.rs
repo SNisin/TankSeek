@@ -5,7 +5,7 @@ mod efu_file;
 mod file_tree;
 mod list_index;
 mod sorter;
-use crate::file_tree::{Element, FileTree};
+use crate::file_tree::FileTree;
 use crate::sorter::{SortField, SortOrder, Sorter};
 use crate::{efu_file::import, list_index::bigram_reverse_index::BigramIndex};
 use std::time::Instant;
@@ -31,19 +31,29 @@ impl FileResult {
         }
     }
 }
+#[derive(Serialize, Deserialize)]
+struct SearchResult {
+    results: Vec<FileResult>,
+    total: usize,
+    offset: usize,
+    page_size: usize,
+    time_taken: u128,
+}
 
 #[macro_use]
 extern crate rocket;
 
-#[get("/search?<query>&<sort_by>&<sort_order>")]
+#[get("/search?<query>&<offset>&<sort_by>&<sort_order>")]
 fn search(
     query: String,
+    offset: Option<usize>,
     sort_by: Option<String>,
     sort_order: Option<String>,
     tree: &rocket::State<FileTree>,
     bigram_index: &rocket::State<BigramIndex>,
     sorter: &rocket::State<Sorter>,
 ) -> String {
+    let time_start = Instant::now();
     let mut indices;
 
     // Normalize the query to lowercase for case-insensitive search
@@ -82,18 +92,16 @@ fn search(
 
     let mut result_elements = Vec::new();
     // Now we have the indices of the elements that match the query
-    let mut num_results = 0; // Counter for the number of results
     // Prepare the results based on the indices
-    for &index in &indices {
-        if num_results < 100 {
-            // If we have less than 100 results, add the record to the results
-            result_elements.push(&tree.get_elements()[index]);
-            num_results += 1; // Increment the number of results found
-        } else {
-            // If we have 100 results, we stop adding more
-            break;
-        }
-    }
+    indices
+        .iter()
+        .skip(offset.unwrap_or(0))
+        .take(100)
+        .for_each(|&index| {
+            if let Some(element) = tree.get(index) {
+                result_elements.push(element);
+            }
+        });
 
     // Iterate over the records and filter based on the query
     // limit to 100 results but count all matching records
@@ -133,6 +141,13 @@ fn search(
         .map(|element| FileResult::from_element(&element, tree.get_full_path(element.parent)))
         .collect();
 
+    let results = SearchResult {
+        results,
+        total: indices.len(),
+        offset: offset.unwrap_or(0),
+        page_size: 100, // Fixed page size for now
+        time_taken: time_start.elapsed().as_millis(),
+    };
     // Convert results to JSON
     match serde_json::to_string(&results) {
         Ok(json) => json,

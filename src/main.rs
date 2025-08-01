@@ -1,6 +1,7 @@
 use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
+use std::sync::Mutex;
 mod efu_file;
 mod file_tree;
 mod list_index;
@@ -40,6 +41,16 @@ struct SearchResult {
     time_taken: u128,
 }
 
+struct SearchCache {
+    query: String,
+    indices: Vec<usize>,
+    sort_by: Option<SortField>,
+    sort_order: Option<SortOrder>,
+}
+struct LastSearchCache {
+    search: Mutex<Option<SearchCache>>,
+}
+
 #[macro_use]
 extern crate rocket;
 
@@ -52,48 +63,75 @@ fn search(
     tree: &rocket::State<FileTree>,
     bigram_index: &rocket::State<BigramIndex>,
     sorter: &rocket::State<Sorter>,
+    last_search_cache: &rocket::State<LastSearchCache>,
 ) -> String {
     let time_start = Instant::now();
-    let mut indices;
+    let result_indices;
 
     // Normalize the query to lowercase for case-insensitive search
     let query = query.to_lowercase();
 
-    // Check if the query is empty
-    if query.is_empty() {
-        indices = (0..tree.len()).collect::<Vec<usize>>();
-    } else if query.len() < 2 {
-        // If the query is less than 2 characters, TODO
-        return String::from("[]");
+    let sort_by: Option<SortField> = match sort_by.as_deref() {
+        Some("filename") => Some(SortField::Filename),
+        Some("date_modified") => Some(SortField::DateModified),
+        Some("date_created") => Some(SortField::DateCreated),
+        Some("size") => Some(SortField::Size),
+        _ => None, // Default to None if no valid sort field is provided
+    };
+    let sort_order: Option<SortOrder> = match sort_order.as_deref() {
+        Some("ascending") => Some(SortOrder::Ascending),
+        Some("descending") => Some(SortOrder::Descending),
+        _ => None, // Default to None if no valid sort order is provided
+    };
+
+    // Check if the query is cached
+    let mut cache_guard = last_search_cache.search.lock().unwrap();
+    if let Some(cache) = cache_guard.as_ref()
+        && cache.query == query
+        && cache.sort_by == sort_by
+        && cache.sort_order == sort_order
+    {
+        result_indices = &cache.indices;
     } else {
-        indices = bigram_index.query_word(&query);
-    }
+        drop(cache_guard); // Release the lock before performing the search
+        let mut indices: Vec<usize>;
+        // Check if the query is empty
+        if query.is_empty() {
+            indices = (0..tree.len()).collect::<Vec<usize>>();
+        } else if query.len() < 2 {
+            // If the query is less than 2 characters, TODO
+            return String::from("[]");
+        } else {
+            indices = bigram_index.query_word(&query);
+        }
 
-    println!(
-        "Found {} matching records for query '{}'",
-        indices.len(),
-        query
-    );
-    if sort_by.is_some() {
-        let sort_by: SortField = match sort_by.as_deref() {
-            Some("name") => SortField::Filename,
-            Some("date_modified") => SortField::DateModified,
-            Some("date_created") => SortField::DateCreated,
-            Some("size") => SortField::Size,
-            _ => SortField::Filename, // Default sort by filename
-        };
-        let sort_order: SortOrder = match sort_order.as_deref() {
-            Some("ascending") => SortOrder::Ascending,
-            Some("descending") => SortOrder::Descending,
-            _ => SortOrder::Ascending, // Default sort order
-        };
-        sorter.sort_by(&tree, indices.as_mut_slice(), sort_by, sort_order);
-    }
+        println!(
+            "Found {} matching records for query '{}'",
+            indices.len(),
+            query
+        );
+        if let Some(sort_by) = sort_by {
+            let sort_order = sort_order.unwrap_or(SortOrder::Ascending);
+            sorter.sort_by(&tree, indices.as_mut_slice(), sort_by, sort_order);
+        }
 
+        last_search_cache
+            .search
+            .lock()
+            .unwrap()
+            .replace(SearchCache {
+                query: query.clone(),
+                indices: indices,
+                sort_by,
+                sort_order,
+            });
+        cache_guard = last_search_cache.search.lock().unwrap();
+        result_indices = &cache_guard.as_ref().unwrap().indices;
+    }
     let mut result_elements = Vec::new();
     // Now we have the indices of the elements that match the query
     // Prepare the results based on the indices
-    indices
+    result_indices
         .iter()
         .skip(offset.unwrap_or(0))
         .take(100)
@@ -143,7 +181,7 @@ fn search(
 
     let results = SearchResult {
         results,
-        total: indices.len(),
+        total: result_indices.len(),
         offset: offset.unwrap_or(0),
         page_size: 100, // Fixed page size for now
         time_taken: time_start.elapsed().as_millis(),
@@ -183,6 +221,9 @@ fn rocket() -> _ {
                 .manage(tree)
                 .manage(bigram_index)
                 .manage(sorter)
+                .manage(LastSearchCache {
+                    search: Mutex::new(None),
+                })
                 .mount("/", routes![search])
                 .mount("/", FileServer::from(relative!("public")))
         }

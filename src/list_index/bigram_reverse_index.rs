@@ -68,11 +68,12 @@ impl CompressedPostingsList {
 
 pub struct BigramIndex {
     pub index: HashMap<Bigram, CompressedPostingsList>,
+    num_elements: usize,
 }
 impl BigramIndex {
     pub fn new(tree: &FileTree) -> Self {
         let index = create_bigram_reverse_index(tree);
-        BigramIndex { index }
+        BigramIndex { index, num_elements: tree.len() }
     }
 
     pub fn query_word<T: AsRef<str>>(&self, word: T) -> Vec<usize> {
@@ -127,6 +128,29 @@ impl BigramIndex {
         }
         indices.shrink_to_fit(); // Reduce capacity to the actual size
         indices
+    }
+    pub fn query_char(&self, c: char) -> Vec<usize> {
+        // go over the index and find all indices that contain the character
+        let mut indices = vec![false; self.num_elements];
+        for (bigram, postings_list) in &self.index {
+            if bigram.first == c || bigram.second == c {
+                let decompressed_indices = postings_list.decompress();
+                for &index in &decompressed_indices {
+                    indices[index] = true; // Mark the index as containing the character
+                }
+            }
+        }
+        // Collect the indices that are marked as true
+        let mut result_indices = Vec::with_capacity(self.num_elements);
+        result_indices.extend(
+            indices
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &contains)| if contains { Some(i) } else { None }),
+        );
+        result_indices.shrink_to_fit(); // Reduce capacity to the actual size
+        result_indices
+
     }
 
     pub fn len(&self) -> usize {

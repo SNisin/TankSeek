@@ -101,8 +101,8 @@ fn search(
         if query.is_empty() {
             indices = (0..tree.len()).collect::<Vec<usize>>();
         } else if query_len < 2 {
-            // If the query is less than 2 characters, TODO
-            indices = vec![];
+            // If the query is 1 character
+            indices = bigram_index.query_char(query.chars().next().unwrap());
         } else {
             indices = bigram_index.query_word(&query);
             if query_len > 2 {

@@ -11,6 +11,7 @@
             /* padding: 1em; */
             margin-top: 30px;
             /* Adjust based on nav height */
+            margin-bottom: 50px;
         }
 
         table {
@@ -117,6 +118,24 @@
             /* Ensure headers are above other content */
         }
 
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #f4f4f4;
+            padding: 4px 8px;
+            text-align: left;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 12px;
+            display: inline-block;
+            margin-right: 20px;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -146,6 +165,10 @@
             </tbody>
         </table>
     </div>
+    <footer>
+        <p id="numResults"><span id="totalResultsCount">0</span> Elements</p>
+        <p id="timeTaken">Time taken: <span id="timeTakenVal">0</span> ms</p>
+    </footer>
     <script>
 
         const fileEndingsMap = {
@@ -266,6 +289,9 @@
                     totalResults = data.total;
                     pageSize = data.page_size;
                     currentOffset = data.offset;
+
+                    document.getElementById('totalResultsCount').textContent = totalResults.toLocaleString();
+                    document.getElementById('timeTakenVal').textContent = (data.time_taken / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
                     displayFiles();
 

@@ -28,7 +28,7 @@ impl Element {
 }
 
 pub struct FileTree {
-    elements: Vec<Element>,
+    pub elements: Vec<Element>,
 }
 impl FileTree {
     pub fn with_capacity(capacity: usize) -> Self {

@@ -220,6 +220,7 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "csv",
+ "regex",
  "rocket",
  "serde",
  "serde_json",

@@ -1,4 +1,3 @@
-use bumpalo::collections::vec;
 use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
@@ -6,6 +5,7 @@ use std::sync::Mutex;
 mod efu_file;
 mod file_tree;
 mod list_index;
+mod post_filter;
 mod sorter;
 use crate::file_tree::FileTree;
 use crate::sorter::{SortField, SortOrder, Sorter};
@@ -104,6 +104,10 @@ fn search(
             indices = vec![];
         } else {
             indices = bigram_index.query_word(&query);
+            if query.chars().count() > 2 {
+                // If the query is longer than 2 characters, apply post-filtering
+                post_filter::post_filter(tree, &mut indices, &query);
+            }
         }
 
         println!(

@@ -97,14 +97,15 @@ fn search(
         drop(cache_guard); // Release the lock before performing the search
         let mut indices: Vec<usize>;
         // Check if the query is empty
+        let query_len = query.chars().count();
         if query.is_empty() {
             indices = (0..tree.len()).collect::<Vec<usize>>();
-        } else if query.len() < 2 {
+        } else if query_len < 2 {
             // If the query is less than 2 characters, TODO
             indices = vec![];
         } else {
             indices = bigram_index.query_word(&query);
-            if query.chars().count() > 2 {
+            if query_len > 2 {
                 // If the query is longer than 2 characters, apply post-filtering
                 post_filter::post_filter(tree, &mut indices, &query);
             }

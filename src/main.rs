@@ -2,14 +2,14 @@ use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
 use std::sync::Mutex;
-mod efu_file;
+mod loader;
 mod file_tree;
 mod list_index;
 mod post_filter;
 mod sorter;
 use crate::file_tree::FileTree;
 use crate::sorter::{SortField, SortOrder, Sorter};
-use crate::{efu_file::import, list_index::bigram_reverse_index::BigramIndex};
+use crate::{list_index::bigram_reverse_index::BigramIndex};
 use std::time::Instant;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -203,7 +203,7 @@ fn search(
 fn rocket() -> _ {
     println!("Reading file list...");
     let start = Instant::now();
-    match import::import_efu("filelist.efu") {
+    match loader::efu::import_efu("filelist.efu") {
         Ok(tree) => {
             println!(
                 "Read {} records from filelist.efu in {:?}",

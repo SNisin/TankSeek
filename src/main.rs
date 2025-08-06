@@ -4,12 +4,12 @@ use std::process::{self};
 use std::sync::Mutex;
 mod loader;
 mod file_tree;
-mod list_index;
+mod indexer;
 mod post_filter;
 mod sorter;
 use crate::file_tree::FileTree;
 use crate::sorter::{SortField, SortOrder, Sorter};
-use crate::{list_index::bigram_reverse_index::BigramIndex};
+use crate::{indexer::bigram_index::BigramIndex};
 use std::time::Instant;
 
 #[derive(Serialize, Deserialize, Clone)]

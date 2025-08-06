@@ -1,1 +1,1 @@
-pub mod bigram_reverse_index;
+pub mod bigram_index;

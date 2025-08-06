@@ -1,3 +1,4 @@
+use core::time;
 use std::collections::HashMap;
 
 use crate::file_tree::FileTree;
@@ -160,6 +161,8 @@ impl BigramIndex {
 }
 
 fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, CompressedPostingsList> {
+    println!("Creating bigram reverse index...");
+    let time_start = std::time::Instant::now();
     // Create a bigram reverse index for the elements
     let mut index: HashMap<Bigram, Vec<usize>> = HashMap::new();
     for (i, element) in tree.get_elements().iter().enumerate() {
@@ -194,9 +197,10 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, CompressedPos
         compressed_index.insert(bigram, comp_post);
     }
     println!(
-        "Created bigram reverse index with {} entries and total size of {} bytes",
+        "Created bigram reverse index with {} entries and total size of {} bytes in {:?}",
         compressed_index.len(),
-        total_size
+        total_size,
+        time_start.elapsed()
     );
 
     compressed_index

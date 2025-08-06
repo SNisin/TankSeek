@@ -2,15 +2,17 @@ use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
 use std::sync::Mutex;
-mod loader;
 mod file_tree;
 mod indexer;
+mod loader;
 mod post_filter;
 mod sorter;
 use crate::file_tree::FileTree;
+use crate::indexer::bigram_index::BigramIndex;
+use crate::searcher::Searcher;
 use crate::sorter::{SortField, SortOrder, Sorter};
-use crate::{indexer::bigram_index::BigramIndex};
 use std::time::Instant;
+mod searcher;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct FileResult {
@@ -61,9 +63,7 @@ fn search(
     offset: Option<usize>,
     sort_by: Option<String>,
     sort_order: Option<String>,
-    tree: &rocket::State<FileTree>,
-    bigram_index: &rocket::State<BigramIndex>,
-    sorter: &rocket::State<Sorter>,
+    searcher: &rocket::State<Searcher>,
     last_search_cache: &rocket::State<LastSearchCache>,
 ) -> String {
     let time_start = Instant::now();
@@ -95,43 +95,17 @@ fn search(
         result_indices = &cache.indices;
     } else {
         drop(cache_guard); // Release the lock before performing the search
-        let mut indices: Vec<usize>;
-        // Check if the query is empty
-        let query_len = query.chars().count();
-        if query.is_empty() {
-            indices = (0..tree.len()).collect::<Vec<usize>>();
-        } else if query_len < 2 {
-            // If the query is 1 character
-            indices = bigram_index.query_char(query.chars().next().unwrap());
-        } else {
-            indices = bigram_index.query_word(&query);
-            if query_len > 2 {
-                // If the query is longer than 2 characters, apply post-filtering
-                post_filter::post_filter(tree, &mut indices, &query);
-            }
-        }
 
-        println!(
-            "Found {} matching records for query '{}'",
-            indices.len(),
-            query
-        );
-        if let Some(sort_by) = sort_by {
-            let sort_order = sort_order.unwrap_or(SortOrder::Ascending);
-            sorter.sort_by(&tree, indices.as_mut_slice(), sort_by, sort_order);
-        }
+        // Perform the search using the Searcher
+        let indices = searcher.search(&query, sort_by, sort_order);
 
-        last_search_cache
-            .search
-            .lock()
-            .unwrap()
-            .replace(SearchCache {
-                query: query.clone(),
-                indices: indices,
-                sort_by,
-                sort_order,
-            });
         cache_guard = last_search_cache.search.lock().unwrap();
+        cache_guard.replace(SearchCache {
+            query: query.clone(),
+            indices: indices,
+            sort_by,
+            sort_order,
+        });
         result_indices = &cache_guard.as_ref().unwrap().indices;
     }
     let mut result_elements = Vec::new();
@@ -142,47 +116,20 @@ fn search(
         .skip(offset.unwrap_or(0))
         .take(100)
         .for_each(|&index| {
-            if let Some(element) = tree.get(index) {
+            if let Some(element) = searcher.get(index) {
                 result_elements.push(element);
             }
         });
 
-    // Iterate over the records and filter based on the query
-    // limit to 100 results but count all matching records
-
-    // let mut num_results = 0;
-    // for record in elements.iter() {
-    //     if record.filename.to_lowercase().contains(&query) {
-    //         if num_results < 100 {
-    //             // If we have less than 100 results, add the record to the results
-    //             let mut record_with_full_path = record.clone();
-    //             // Construct the full path for the record from parents
-    //             let mut full_path = record_with_full_path.filename.clone();
-    //             let mut parent_index = record_with_full_path.parent;
-    //             while parent_index != 0 {
-    //                 if let Some(parent) = elements.get(parent_index) {
-    //                     full_path = format!("{}/{}", parent.filename, full_path);
-    //                     parent_index = parent.parent;
-    //                 } else {
-    //                     break; // If parent not found, break the loop
-    //                 }
-    //             }
-    //             // Update the filename to the full path
-    //             record_with_full_path.filename = full_path;
-    //             // Add the record to the results
-    //             results.push(record_with_full_path);
-    //         } else {
-    //             break;
-    //         }
-    //         // If we have 100 results, we still count the record but don't add it to the results
-    //         num_results += 1;
-    //     }
-    // }
-
     // Convert the elements to FileResult
     let results: Vec<_> = result_elements
         .into_iter()
-        .map(|element| FileResult::from_element(&element, tree.get_full_path(element.parent)))
+        .map(|element| {
+            FileResult::from_element(
+                &element,
+                searcher.get_file_tree().get_full_path(element.parent),
+            )
+        })
         .collect();
 
     let results = SearchResult {
@@ -211,22 +158,12 @@ fn rocket() -> _ {
                 start.elapsed()
             );
 
-            // Create a bigram reverse index for the elements
-            println!("Creating bigram reverse index...");
-            let start = Instant::now();
-            let bigram_index = BigramIndex::new(&tree);
-            let sorter: Sorter = Sorter::new();
-            println!(
-                "Created bigram reverse index with {} entries in {:?}",
-                bigram_index.len(),
-                start.elapsed()
-            );
+            // Create searcher
+            let searcher = Searcher::from_file_tree(tree);
 
             //  exit(0); // Exit successfully after reading the file list
             rocket::build()
-                .manage(tree)
-                .manage(bigram_index)
-                .manage(sorter)
+                .manage(searcher)
                 .manage(LastSearchCache {
                     search: Mutex::new(None),
                 })

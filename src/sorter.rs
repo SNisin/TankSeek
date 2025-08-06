@@ -190,3 +190,125 @@ impl Sorter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::file_tree::Element;
+
+    #[test]
+    fn test_sorter() {
+        let mut tree = FileTree::with_capacity(10);
+
+        let element1 = tree.add_element(Element {
+            filename: String::from("file1.txt"),
+            size: Some(1000),
+            date_modified: Some(4000),
+            date_created: Some(3000),
+            attributes: 0,
+            parent: 0,
+            children: Vec::new(),
+        });
+        let element2 = tree.add_element(Element {
+            filename: String::from("file2.txt"),
+            size: Some(3000),
+            date_modified: Some(1000),
+            date_created: Some(4000),
+            attributes: 0,
+            parent: 0,
+            children: Vec::new(),
+        });
+        let element3 = tree.add_element(Element {
+            filename: String::from("file3.txt"),
+            size: Some(2000),
+            date_modified: Some(2000),
+            date_created: Some(2000),
+            attributes: 0,
+            parent: 0,
+            children: Vec::new(),
+        });
+        let element4 = tree.add_element(Element {
+            filename: String::from("file4.txt"),
+            size: Some(4000),
+            date_modified: Some(3000),
+            date_created: Some(1000),
+            attributes: 0,
+            parent: 0,
+            children: Vec::new(),
+        });
+        tree.add_element(Element {
+            filename: String::from("file5.txt"),
+            size: Some(5000),
+            date_modified: Some(5000),
+            date_created: Some(5000),
+            attributes: 0,
+            parent: 0,
+            children: Vec::new(),
+        });
+
+        let sorter = Sorter::new();
+        let mut indices = vec![element1, element2, element3, element4];
+
+        // Sort by filename ascending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::Filename,
+            SortOrder::Ascending,
+        );
+        assert_eq!(indices, vec![element1, element2, element3, element4]);
+
+        // Sort by filename descending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::Filename,
+            SortOrder::Descending,
+        );
+        assert_eq!(indices, vec![element4, element3, element2, element1]);
+
+        // Sort by size ascending
+        sorter.sort_by(&tree, &mut indices, SortField::Size, SortOrder::Ascending);
+        assert_eq!(indices, vec![element1, element3, element2, element4]);
+
+        // Sort by size descending
+        sorter.sort_by(&tree, &mut indices, SortField::Size, SortOrder::Descending);
+        assert_eq!(indices, vec![element4, element2, element3, element1]);
+
+        // Sort by date modified ascending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::DateModified,
+            SortOrder::Ascending,
+        );
+        assert_eq!(indices, vec![element2, element3, element4, element1]);
+
+        // Sort by date modified descending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::DateModified,
+            SortOrder::Descending,
+        );
+        assert_eq!(indices, vec![element1, element4, element3, element2]);
+
+        // Sort by date created ascending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::DateCreated,
+            SortOrder::Ascending,
+        );
+        assert_eq!(indices, vec![element4, element3, element1, element2]);
+
+        // Sort by date created descending
+        sorter.sort_by(
+            &tree,
+            &mut indices,
+            SortField::DateCreated,
+            SortOrder::Descending,
+        );
+        assert_eq!(indices, vec![element2, element1, element3, element4]);
+    }
+}

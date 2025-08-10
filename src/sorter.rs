@@ -66,7 +66,7 @@ impl Sorter {
             println!("Preparing filename order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_by(|&a, &b| {
+            sorted.sort_unstable_by(|&a, &b| {
                 tree.get(a)
                     .unwrap()
                     .filename
@@ -93,7 +93,7 @@ impl Sorter {
             println!("Preparing date modified order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_by(|&a, &b| {
+            sorted.sort_unstable_by(|&a, &b| {
                 tree.get(a)
                     .unwrap()
                     .date_modified
@@ -120,7 +120,7 @@ impl Sorter {
             println!("Preparing date created order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_by(|&a, &b| {
+            sorted.sort_unstable_by(|&a, &b| {
                 tree.get(a)
                     .unwrap()
                     .date_created
@@ -147,7 +147,7 @@ impl Sorter {
             println!("Preparing size order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_by(|&a, &b| tree.get(a).unwrap().size.cmp(&tree.get(b).unwrap().size));
+            sorted.sort_unstable_by(|&a, &b| tree.get(a).unwrap().size.cmp(&tree.get(b).unwrap().size));
             let mut order = vec![0; sorted.len()];
 
             for (i, &index) in sorted.iter().enumerate() {

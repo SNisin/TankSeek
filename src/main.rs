@@ -7,10 +7,8 @@ mod indexer;
 mod loader;
 mod post_filter;
 mod sorter;
-use crate::file_tree::FileTree;
-use crate::indexer::bigram_index::BigramIndex;
 use crate::searcher::Searcher;
-use crate::sorter::{SortField, SortOrder, Sorter};
+use crate::sorter::{SortField, SortOrder};
 use std::time::Instant;
 mod searcher;
 

@@ -165,13 +165,13 @@ fn create_bigram_reverse_index(tree: &FileTree) -> HashMap<Bigram, CompressedPos
     // Create a bigram reverse index for the elements
     let mut index: HashMap<Bigram, Vec<usize>> = HashMap::new();
     for (i, element) in tree.get_elements().iter().enumerate() {
-        if element.filename.len() < 2 {
-            continue; // Skip filenames that are too short for bigram indexing
-        }
         // take every two letters of the filename
-        let filename = element.filename.to_lowercase();
+        let filename = tree.filename_as_str(&element.filename).to_lowercase();
         // Split the query into bigrams (bi-letters)
         let chars: Vec<char> = filename.chars().collect();
+        if chars.len() < 2 {
+            continue; // Skip elements with less than 2 characters
+        }
         for j in 0..chars.len() - 1 {
             // Create a bigram from the current and next character
             let bigram = Bigram {

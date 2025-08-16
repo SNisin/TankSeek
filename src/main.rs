@@ -22,9 +22,9 @@ struct FileResult {
     attributes: u32,
 }
 impl FileResult {
-    fn from_element<T: AsRef<str>>(element: &file_tree::Element, path: T) -> Self {
+    fn from_element<T: AsRef<str>, U: AsRef<str>>(element: &file_tree::Element, path: T, filename: U) -> Self {
         FileResult {
-            name: element.filename.clone(),
+            name: filename.as_ref().to_string(),
             path: path.as_ref().to_string(),
             size: element.size,
             date_modified: element.date_modified,
@@ -126,6 +126,7 @@ fn search(
             FileResult::from_element(
                 &element,
                 searcher.get_file_tree().get_full_path(element.parent),
+                searcher.get_file_tree().filename_as_str(&element.filename)
             )
         })
         .collect();

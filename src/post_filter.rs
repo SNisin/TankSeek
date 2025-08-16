@@ -13,7 +13,7 @@ pub fn post_filter(tree: &FileTree, indices: &mut Vec<usize>, query: &str) {
 
     // Filter results based on the query
 
-    indices.retain(|&index| regex.is_match(&tree.elements[index].filename));
+    indices.retain(|&index| regex.is_match(&tree.get_filename(index)));
 
     // print!(
     //     "Post-filtering took {} ms, reduced results from {} to {}\n",
@@ -32,7 +32,7 @@ mod tests {
     fn test_post_filter() {
         let mut tree = FileTree::with_capacity(5);
         let element1 = tree.add_element(Element {
-            filename: String::from("file1.txt"),
+            filename: tree.new_filename("file1.txt"),
             size: Some(1000),
             date_modified: Some(1000),
             date_created: Some(1000),
@@ -41,7 +41,7 @@ mod tests {
             children: Vec::new(),
         });
         let element2 = tree.add_element(Element {
-            filename: String::from("file2.txt"),
+            filename: tree.new_filename("file2.txt"),
             size: Some(2000),
             date_modified: Some(2000),
             date_created: Some(2000),
@@ -50,7 +50,7 @@ mod tests {
             children: Vec::new(),
         });
         let element3 = tree.add_element(Element {
-            filename: String::from("file3.txt"),
+            filename: tree.new_filename("file3.txt"),
             size: Some(3000),
             date_modified: Some(3000),
             date_created: Some(3000),
@@ -59,7 +59,7 @@ mod tests {
             children: Vec::new(),
         });
         let element4 = tree.add_element(Element {
-            filename: String::from("file4.txt"),
+            filename: tree.new_filename("file4.txt"),
             size: Some(4000),
             date_modified: Some(4000),
             date_created: Some(4000),

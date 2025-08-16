@@ -65,7 +65,7 @@ pub fn import_efu<P: AsRef<Path>>(filepath: P) -> Result<FileTree, Box<dyn Error
         for (i, part) in parts.iter().enumerate().skip(start_part as usize) {
             // create a new child element
             let new_element = Element {
-                filename: part.to_string(),
+                filename: tree.new_filename(part),
                 size: None,
                 date_modified: None,
                 date_created: None,

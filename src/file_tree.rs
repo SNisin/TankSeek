@@ -1,43 +1,42 @@
 use serde::Serialize;
 
-#[derive(Serialize, Clone)]
+// Filename struct to represent a filename with start index and end in byte array
+pub struct Filename(usize, usize);
+impl Filename {
+    pub fn new(start: usize, end: usize) -> Self {
+        Filename(start, end)
+    }
+    pub fn len(&self) -> usize {
+        self.1 - self.0
+    }
+}
+
 pub struct Element {
-    pub filename: String,
+    pub filename: Filename,
     pub size: Option<i64>,
     pub date_modified: Option<i64>,
     pub date_created: Option<i64>,
     pub attributes: u32,
-    #[serde(skip)]
     pub parent: usize,
-    #[serde(skip)]
     pub children: Vec<usize>,
 }
 impl Element {
-    fn new_root() -> Self {
-        // Create a new root element
-        Element {
-            filename: String::from("Root"),
-            size: None,
-            date_modified: None,
-            date_created: None,
-            attributes: 0,        // Assuming root has no attributes
-            parent: 0,            // Root has no parent
-            children: Vec::new(), // Root has no children initially
-        }
-    }
+
 }
 
 pub struct FileTree {
     pub elements: Vec<Element>,
+    strbuf: Vec<u8>, // Buffer for storing filenames as byte arrays
 }
 impl FileTree {
     pub fn with_capacity(capacity: usize) -> Self {
         // create a new FileTree with a specified initial capacity and a root element
         let mut tree = FileTree {
             elements: Vec::with_capacity(capacity),
+            strbuf: Vec::with_capacity(capacity*10), // Initial capacity for the string buffer
         };
         // Add a root element
-        tree.add_element(Element::new_root());
+        tree.add_root();
         tree
     }
 
@@ -45,6 +44,34 @@ impl FileTree {
         let index = self.elements.len();
         self.elements.push(element);
         index
+    }
+
+    pub fn add_root(&mut self) -> usize {
+        // Add a root element if it doesn't exist
+        if self.elements.is_empty() {
+            let filename = self.new_filename("Root");
+            let root = Element{
+                filename: filename,
+                size: None,
+                date_modified: None,
+                date_created: None,
+                attributes: 0,
+                parent: 0, // Root has no parent
+                children: Vec::new(),
+            };
+            self.add_element(root)
+        } else {
+            0 // Return the index of the existing root element
+        }
+
+    }
+    
+    pub fn new_filename(&mut self, string : &str) -> Filename {
+        // Create a new Filename from a string, storing it in the strbuf
+        let start = self.strbuf.len();
+        self.strbuf.extend_from_slice(string.as_bytes());
+        let end = self.strbuf.len();
+        Filename::new(start, end)
     }
 
     pub fn get(&self, index: usize) -> Option<&Element> {
@@ -57,6 +84,18 @@ impl FileTree {
         &self.elements
     }
 
+    pub fn filename_as_str(&self, filename: &Filename) -> &str {
+        // Convert the byte slice to a str using the start and end indices
+        let filename_bytes = &self.strbuf[filename.0..filename.1];
+        // Convert bytes to str, assuming UTF-8 encoding
+        std::str::from_utf8(filename_bytes).unwrap_or("")
+    }
+    pub fn get_filename(&self, index: usize) -> &str {
+        // Get the filename of the element at the specified index
+        let element = &self.elements[index];
+        self.filename_as_str(&element.filename)
+    }
+
     pub fn get_full_path(&self, index: usize) -> String {
         // Get the path of the element at the specified index. Not including the filename itself.
         let mut path = String::new();
@@ -64,9 +103,9 @@ impl FileTree {
         while current_index != 0 {
             let element = &self.elements[current_index];
             if !path.is_empty() {
-                path = format!("{}\\{}", element.filename, path);
+                path = format!("{}\\{}", self.filename_as_str(&element.filename), path);
             } else {
-                path = element.filename.clone();
+                path = self.filename_as_str(&element.filename).to_string();
             }
             current_index = element.parent;
         }

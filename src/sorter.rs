@@ -67,10 +67,7 @@ impl Sorter {
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
             sorted.sort_unstable_by(|&a, &b| {
-                tree.get(a)
-                    .unwrap()
-                    .filename
-                    .cmp(&tree.get(b).unwrap().filename)
+                tree.get_filename(a).cmp(&tree.get_filename(b))
             });
             let mut order = vec![0; sorted.len()];
 

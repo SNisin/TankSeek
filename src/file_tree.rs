@@ -139,8 +139,12 @@ impl FileTree {
     }
     pub fn get_filename(&self, index: usize) -> &str {
         // Get the filename of the element at the specified index
-        let element = &self.elements[index];
-        self.filename_as_str(&element.filename)
+        let filename = &self.elements[index].filename;
+        // Convert the byte slice to a str using the start and end indices
+        let filename_bytes = &self.strbuf[filename.0..filename.1];
+        // Convert bytes to str, assuming UTF-8 encoding
+        //SAFETY: We ensure that the bytes are valid UTF-8 when adding filenames
+        unsafe { std::str::from_utf8_unchecked(filename_bytes) }
     }
 
     pub fn get_full_path(&self, index: usize) -> String {

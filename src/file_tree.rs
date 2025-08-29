@@ -141,7 +141,8 @@ impl FileTree {
         // Get the filename of the element at the specified index
         let filename = &self.elements[index].filename;
         // Convert the byte slice to a str using the start and end indices
-        let filename_bytes = &self.strbuf[filename.0..filename.1];
+        // SAFETY: We ensure that the indices are valid when creating Filename instances
+        let filename_bytes = unsafe { self.strbuf.get_unchecked(filename.0..filename.1) };
         // Convert bytes to str, assuming UTF-8 encoding
         //SAFETY: We ensure that the bytes are valid UTF-8 when adding filenames
         unsafe { std::str::from_utf8_unchecked(filename_bytes) }

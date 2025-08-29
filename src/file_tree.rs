@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 // Filename struct to represent a filename with start index and end in byte array
 pub struct Filename(usize, usize);
 impl Filename {
@@ -20,9 +18,7 @@ pub struct Element {
     pub parent: usize,
     pub children: Vec<usize>,
 }
-impl Element {
-
-}
+impl Element {}
 
 pub struct FileTree {
     pub elements: Vec<Element>,
@@ -33,7 +29,7 @@ impl FileTree {
         // create a new FileTree with a specified initial capacity and a root element
         let mut tree = FileTree {
             elements: Vec::with_capacity(capacity),
-            strbuf: Vec::with_capacity(capacity*10), // Initial capacity for the string buffer
+            strbuf: Vec::with_capacity(capacity * 10), // Initial capacity for the string buffer
         };
         // Add a root element
         tree.add_root();
@@ -46,11 +42,11 @@ impl FileTree {
         index
     }
 
-    pub fn add_root(&mut self) -> usize {
+    fn add_root(&mut self) -> usize {
         // Add a root element if it doesn't exist
         if self.elements.is_empty() {
             let filename = self.new_filename("Root");
-            let root = Element{
+            let root = Element {
                 filename: filename,
                 size: None,
                 date_modified: None,
@@ -63,10 +59,58 @@ impl FileTree {
         } else {
             0 // Return the index of the existing root element
         }
-
     }
-    
-    pub fn new_filename(&mut self, string : &str) -> Filename {
+
+    pub fn add_or_update_recursive(
+        &mut self,
+        path: &str,
+        size: Option<i64>,
+        date_modified: Option<i64>,
+        date_created: Option<i64>,
+        attributes: u32,
+    ) -> usize {
+        let mut current_index = 0; // Start from the root
+        for part in path.split(&['\\', '/']) {
+            // println!("Part: {}, current_index: {}", part, current_index);
+            // if part == "tank" { panic!("Debugging"); }
+
+            // Check if the part already exists among the children
+            let found_elem = self.elements[current_index]
+                .children
+                .binary_search_by_key(&part, |&child_index| self.get_filename(child_index));
+            // println!("Found elem: {:?}", found_elem);
+            current_index = match found_elem {
+                Ok(index) => self.elements[current_index].children[index], // Move to the existing child
+                Err(index) => {
+                    // Create a new element
+                    let new_element = Element {
+                        filename: self.new_filename(part),
+                        size: None,
+                        date_modified: None,
+                        date_created: None,
+                        attributes: 0,
+                        parent: current_index,
+                        children: Vec::new(),
+                    };
+                    let child_index = self.add_element(new_element);
+                    self.elements[current_index]
+                        .children
+                        .insert(index, child_index);
+                    child_index
+                }
+            };
+        }
+        // Update the final element with the provided metadata
+        if let Some(element) = self.elements.get_mut(current_index) {
+            element.size = size;
+            element.date_modified = date_modified;
+            element.date_created = date_created;
+            element.attributes = attributes;
+        }
+        current_index
+    }
+
+    pub fn new_filename(&mut self, string: &str) -> Filename {
         // Create a new Filename from a string, storing it in the strbuf
         let start = self.strbuf.len();
         self.strbuf.extend_from_slice(string.as_bytes());

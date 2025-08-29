@@ -101,12 +101,15 @@ impl FileTree {
             };
         }
         // Update the final element with the provided metadata
-        if let Some(element) = self.elements.get_mut(current_index) {
-            element.size = size;
-            element.date_modified = date_modified;
-            element.date_created = date_created;
-            element.attributes = attributes;
-        }
+        let element = self
+            .elements
+            .get_mut(current_index)
+            .expect("Element should exist");
+        element.size = size;
+        element.date_modified = date_modified;
+        element.date_created = date_created;
+        element.attributes = attributes;
+
         current_index
     }
 

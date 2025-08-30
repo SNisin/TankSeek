@@ -1,14 +1,14 @@
 [package]
-name = "efu-search-webui-rust"
+name = "tankseek"
 version = "0.1.0"
 edition = "2024"
-description = "High-performance EFU file search web application"
+description = "TankSeek File Search — high-performance EFU file search web application"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/SNisin/efu-search-webui-rust"
+repository = "https://github.com/SNisin/tankseek-file-search"
 keywords = ["search", "files", "web", "rust", "performance"]
 categories = ["web-programming", "filesystem", "data-structures"]
-default-run = "efu-search-webui-rust"
+default-run = "tankseek"
 
 [dependencies]
 csv = "1.3.1"
@@ -43,7 +43,7 @@ codegen-units = 1        # Use a single codegen unit for better optimization
 rpath = false
 
 [[bin]]
-name = "efu-search-webui-rust"
+name = "tankseek"
 path = "src/main.rs"
 
 [[bin]]

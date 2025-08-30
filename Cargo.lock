@@ -215,18 +215,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "efu-search-webui-rust"
-version = "0.1.0"
-dependencies = [
- "bumpalo",
- "csv",
- "regex",
- "rocket",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1160,6 +1148,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tankseek"
+version = "0.1.0"
+dependencies = [
+ "bumpalo",
+ "csv",
+ "regex",
+ "rocket",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

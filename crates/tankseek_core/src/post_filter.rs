@@ -26,15 +26,25 @@ pub fn post_filter(tree: &FileTree, indices: &mut Vec<usize>, query: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::file_tree::{Element, FileTree};
+    use crate::file_tree::FileTree;
 
     #[test]
     fn test_post_filter() {
         let mut tree = FileTree::with_capacity(5);
-        let element1 =
-            tree.add_or_update_recursive("some/path/file1.txt", Some(1000), Some(4000), Some(3000), 0);
-        let element2 =
-            tree.add_or_update_recursive("other/path/file2.txt", Some(3000), Some(1000), Some(4000), 0);
+        let element1 = tree.add_or_update_recursive(
+            "some/path/file1.txt",
+            Some(1000),
+            Some(4000),
+            Some(3000),
+            0,
+        );
+        let element2 = tree.add_or_update_recursive(
+            "other/path/file2.txt",
+            Some(3000),
+            Some(1000),
+            Some(4000),
+            0,
+        );
         let element3 =
             tree.add_or_update_recursive("mydir/file3.txt", Some(2000), Some(2000), Some(2000), 0);
         let element4 =

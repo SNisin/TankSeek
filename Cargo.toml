@@ -1,6 +1,6 @@
 [workspace]
-members = ["crates/tankseek-core"]
-default-members = ["crates/tankseek-core"]
+members = ["crates/tankseek_core"]
+default-members = ["crates/tankseek_core"]
 resolver = "3"
 
 [workspace.package]

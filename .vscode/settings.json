@@ -10,5 +10,6 @@
         "rustc",
         "serde",
         "webui"
-    ]
+    ],
+    "files.insertFinalNewline": true
 }

@@ -3,8 +3,8 @@
 fn main() {
     let start_time = std::time::Instant::now();
     println!("Loading file tree...");
-    let tree = tankseek_core::loader::efu::import_efu("filelist.efu")
-        .expect("Failed to load file tree");
+    let tree =
+        tankseek_core::loader::efu::import_efu("filelist.efu").expect("Failed to load file tree");
     println!(
         "Loaded {} elements in {:?}",
         tree.len(),

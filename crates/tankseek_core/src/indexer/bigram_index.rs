@@ -73,7 +73,10 @@ pub struct BigramIndex {
 impl BigramIndex {
     pub fn new(tree: &FileTree) -> Self {
         let index = create_bigram_reverse_index(tree);
-        BigramIndex { index, num_elements: tree.len() }
+        BigramIndex {
+            index,
+            num_elements: tree.len(),
+        }
     }
 
     pub fn query_word<T: AsRef<str>>(&self, word: T) -> Vec<usize> {
@@ -150,7 +153,6 @@ impl BigramIndex {
         );
         result_indices.shrink_to_fit(); // Reduce capacity to the actual size
         result_indices
-
     }
 
     pub fn len(&self) -> usize {

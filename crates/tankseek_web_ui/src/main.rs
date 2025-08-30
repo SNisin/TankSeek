@@ -1,14 +1,14 @@
+use crate::searcher::Searcher;
+use crate::sorter::{SortField, SortOrder};
 use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
 use std::sync::Mutex;
+use std::time::Instant;
 use tankseek_core::file_tree;
 use tankseek_core::loader;
-use tankseek_core::sorter;
-use crate::searcher::Searcher;
-use crate::sorter::{SortField, SortOrder};
-use std::time::Instant;
 use tankseek_core::searcher;
+use tankseek_core::sorter;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct FileResult {
@@ -20,7 +20,11 @@ struct FileResult {
     attributes: u32,
 }
 impl FileResult {
-    fn from_element<T: AsRef<str>, U: AsRef<str>>(element: &file_tree::Element, path: T, filename: U) -> Self {
+    fn from_element<T: AsRef<str>, U: AsRef<str>>(
+        element: &file_tree::Element,
+        path: T,
+        filename: U,
+    ) -> Self {
         FileResult {
             name: filename.as_ref().to_string(),
             path: path.as_ref().to_string(),
@@ -124,7 +128,7 @@ fn search(
             FileResult::from_element(
                 &element,
                 searcher.get_file_tree().get_full_path(element.parent),
-                searcher.get_file_tree().filename_as_str(&element.filename)
+                searcher.get_file_tree().filename_as_str(&element.filename),
             )
         })
         .collect();

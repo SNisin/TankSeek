@@ -66,9 +66,7 @@ impl Sorter {
             println!("Preparing filename order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_unstable_by(|&a, &b| {
-                tree.get_filename(a).cmp(&tree.get_filename(b))
-            });
+            sorted.sort_unstable_by(|&a, &b| tree.get_filename(a).cmp(&tree.get_filename(b)));
             let mut order = vec![0; sorted.len()];
 
             for (i, &index) in sorted.iter().enumerate() {
@@ -144,7 +142,9 @@ impl Sorter {
             println!("Preparing size order...");
             let timestamp = std::time::Instant::now();
             let mut sorted: Vec<usize> = (0..tree.get_elements().len()).collect();
-            sorted.sort_unstable_by(|&a, &b| tree.get(a).unwrap().size.cmp(&tree.get(b).unwrap().size));
+            sorted.sort_unstable_by(|&a, &b| {
+                tree.get(a).unwrap().size.cmp(&tree.get(b).unwrap().size)
+            });
             let mut order = vec![0; sorted.len()];
 
             for (i, &index) in sorted.iter().enumerate() {

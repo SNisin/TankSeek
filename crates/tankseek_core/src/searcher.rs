@@ -71,4 +71,3 @@ impl Searcher {
         self.file_tree.get(index)
     }
 }
-

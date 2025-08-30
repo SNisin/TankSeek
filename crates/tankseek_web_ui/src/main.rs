@@ -2,15 +2,13 @@ use rocket::fs::{FileServer, relative};
 use serde::{Deserialize, Serialize};
 use std::process::{self};
 use std::sync::Mutex;
-mod file_tree;
-mod indexer;
-mod loader;
-mod post_filter;
-mod sorter;
+use tankseek_core::file_tree;
+use tankseek_core::loader;
+use tankseek_core::sorter;
 use crate::searcher::Searcher;
 use crate::sorter::{SortField, SortOrder};
 use std::time::Instant;
-mod searcher;
+use tankseek_core::searcher;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct FileResult {

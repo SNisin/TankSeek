@@ -1,0 +1,22 @@
+[package]
+name = "tankseek_web_ui"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+default-run = "tankseek-web-ui"
+
+[dependencies]
+rocket = "0.5.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tankseek_core.workspace = true
+
+[[bin]]
+name = "tankseek-web-ui"
+path = "src/main.rs"

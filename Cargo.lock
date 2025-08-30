@@ -1139,7 +1139,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tankseek"
+name = "tankseek_core"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
@@ -1148,6 +1148,16 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "tankseek_web_ui"
+version = "0.1.0"
+dependencies = [
+ "rocket",
+ "serde",
+ "serde_json",
+ "tankseek_core",
 ]
 
 [[package]]

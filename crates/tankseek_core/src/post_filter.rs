@@ -31,42 +31,14 @@ mod tests {
     #[test]
     fn test_post_filter() {
         let mut tree = FileTree::with_capacity(5);
-        let element1 = tree.add_element(Element {
-            filename: tree.new_filename("file1.txt"),
-            size: Some(1000),
-            date_modified: Some(1000),
-            date_created: Some(1000),
-            attributes: 0,
-            parent: 0,
-            children: Vec::new(),
-        });
-        let element2 = tree.add_element(Element {
-            filename: tree.new_filename("file2.txt"),
-            size: Some(2000),
-            date_modified: Some(2000),
-            date_created: Some(2000),
-            attributes: 0,
-            parent: 0,
-            children: Vec::new(),
-        });
-        let element3 = tree.add_element(Element {
-            filename: tree.new_filename("file3.txt"),
-            size: Some(3000),
-            date_modified: Some(3000),
-            date_created: Some(3000),
-            attributes: 0,
-            parent: 0,
-            children: Vec::new(),
-        });
-        let element4 = tree.add_element(Element {
-            filename: tree.new_filename("file4.txt"),
-            size: Some(4000),
-            date_modified: Some(4000),
-            date_created: Some(4000),
-            attributes: 0,
-            parent: 0,
-            children: Vec::new(),
-        });
+        let element1 =
+            tree.add_or_update_recursive("some/path/file1.txt", Some(1000), Some(4000), Some(3000), 0);
+        let element2 =
+            tree.add_or_update_recursive("other/path/file2.txt", Some(3000), Some(1000), Some(4000), 0);
+        let element3 =
+            tree.add_or_update_recursive("mydir/file3.txt", Some(2000), Some(2000), Some(2000), 0);
+        let element4 =
+            tree.add_or_update_recursive("C:/file4.txt", Some(4000), Some(3000), Some(1000), 0);
         let mut indices = vec![element1, element2, element3, element4];
         post_filter(&tree, &mut indices, "file2");
         assert_eq!(indices, vec![element2]);

@@ -4,3 +4,4 @@ pub mod loader;
 pub mod post_filter;
 pub mod searcher;
 pub mod sorter;
+pub mod query;

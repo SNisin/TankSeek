@@ -12,8 +12,27 @@ pub enum QueryToken {
     Or,
     StrLit(String),
     Ident(String),
+    Whitespace
+}
+impl std::fmt::Display for QueryToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            QueryToken::Colon => write!(f, ":"),
+            QueryToken::Equal => write!(f, "="),
+            QueryToken::LessThan => write!(f, "<"),
+            QueryToken::GreaterThan => write!(f, ">"),
+            QueryToken::LessThanOrEqual => write!(f, "<="),
+            QueryToken::GreaterThanOrEqual => write!(f, ">="),
+            QueryToken::Not => write!(f, "!"),
+            QueryToken::Or => write!(f, "|"),
+            QueryToken::StrLit(s) => write!(f, "{}", s),
+            QueryToken::Ident(s) => write!(f, "{}", s),
+            QueryToken::Whitespace => write!(f, " "),
+        }
+    }
 }
 
+#[derive(Clone)]
 pub struct QueryLexer {
     input: Rc<[char]>,
     read_position: usize,
@@ -21,7 +40,7 @@ pub struct QueryLexer {
 impl QueryLexer {
     pub fn new(input: &str) -> Self {
         Self {
-            input: input.chars().collect(),
+            input: input.trim().chars().collect(),
             read_position: 0,
         }
     }
@@ -34,16 +53,6 @@ impl QueryLexer {
         let ch = self.peek_char()?;
         self.read_position += 1;
         Some(ch)
-    }
-
-    fn skip_whitespace(&mut self) {
-        while let Some(ch) = self.peek_char() {
-            if ch.is_whitespace() {
-                self.read_position += 1;
-            } else {
-                break;
-            }
-        }
     }
 
     fn read_while<F>(&mut self, condition: F) -> String
@@ -63,10 +72,13 @@ impl QueryLexer {
     }
 
     pub fn next_token(&mut self) -> Option<QueryToken> {
-        self.skip_whitespace();
         let ch = self.read_char()?;
 
         let token = match ch {
+            c if c.is_whitespace() => {
+                self.read_while(|c| c.is_whitespace());
+                QueryToken::Whitespace
+            }
             ':' => QueryToken::Colon,
             '=' => QueryToken::Equal,
             '<' => {
@@ -104,6 +116,10 @@ impl QueryLexer {
         };
         Some(token)
     }
+    pub fn peek_token(&self) -> Option<QueryToken> {
+        let mut clone = self.clone();
+        clone.next_token()
+    }
 }
 
 #[cfg(test)]
@@ -120,9 +136,11 @@ mod tests {
             QueryToken::Colon,
             QueryToken::GreaterThan,
             QueryToken::Ident("1000".into()),
+            QueryToken::Whitespace,
             QueryToken::Ident("file".into()),
             QueryToken::Colon,
             QueryToken::StrLit("example.txt".into()),
+            QueryToken::Whitespace,
             QueryToken::Not,
             QueryToken::Ident("ext".into()),
             QueryToken::Colon,
@@ -140,11 +158,17 @@ mod tests {
 
         let expected_tokens = vec![
             QueryToken::Ident("size".into()),
+            QueryToken::Whitespace,
             QueryToken::Colon,
+            QueryToken::Whitespace,
             QueryToken::LessThanOrEqual,
+            QueryToken::Whitespace,
             QueryToken::Ident("2048".into()),
+            QueryToken::Whitespace,
             QueryToken::Ident("case".into()),
+            QueryToken::Whitespace,
             QueryToken::Colon,
+            QueryToken::Whitespace,
             QueryToken::StrLit("test file.txt".into()),
         ];
         for expected in expected_tokens {
@@ -168,6 +192,7 @@ mod tests {
             QueryToken::Ident("wholefilename".into()),
             QueryToken::Colon,
             QueryToken::Ident("report=v<2.0>!.txt".into()),
+            QueryToken::Whitespace,
             QueryToken::Ident("size".into()),
             QueryToken::Colon,
             QueryToken::GreaterThanOrEqual,
@@ -199,15 +224,20 @@ mod tests {
         let mut lexer = QueryLexer::new(input);
         let expected_tokens = vec![
             QueryToken::Ident("notes.txt".into()),
+            QueryToken::Whitespace,
             QueryToken::LessThan,
+            QueryToken::Whitespace,
             QueryToken::Ident("path".into()),
             QueryToken::Colon,
             QueryToken::Ident("homework".into()),
+            QueryToken::Whitespace,
             QueryToken::Or,
+            QueryToken::Whitespace,
             QueryToken::Ident("size".into()),
             QueryToken::Colon,
             QueryToken::GreaterThan,
             QueryToken::Ident("100KB".into()),
+            QueryToken::Whitespace,
             QueryToken::GreaterThan,
         ];
 
